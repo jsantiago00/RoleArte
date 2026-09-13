@@ -1,6 +1,6 @@
 {
-  "name": "Rolearte — Fichas de D&D 5e",
-  "short_name": "Rolearte",
+  "name": "RoleArte — Fichas de D&D 5e",
+  "short_name": "RoleArte",
   "description": "Lleva tus fichas de personaje de D&D 5ª edición, guardadas en tu dispositivo.",
   "start_url": "./index.html",
   "scope": "./",

@@ -95,6 +95,7 @@ export function createDefaultCharacter() {
     className: '',
     classKey: null, // clave de CLASSES cuyos beneficios ya se aplicaron
     subclass: '',
+    subclassKey: null, // clave de SUBCLASSES cuyos rasgos ya se agregaron
     level: 1,
     race: '',
     raceKey: null, // clave de RACES cuyos beneficios ya se aplicaron
@@ -196,6 +197,7 @@ export function migrateCharacter(char) {
   merged.effects = (char.effects || []).map((e) => ({ ...createEffect(), ...e, modifiers: e.modifiers || [] }));
   merged.raceKey = char.raceKey || null;
   merged.classKey = char.classKey || null;
+  merged.subclassKey = char.subclassKey || null;
   return merged;
 }
 

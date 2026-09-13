@@ -1,4 +1,4 @@
-# Rolearte — Fichas de D&D 5ª edición
+# RoleArte — Fichas de D&D 5ª edición
 
 PWA (app web instalable) para llevar tus personajes de D&D 5e. Se adapta a cualquier clase y
 subclase (los campos de clase, subclase, ataques, conjuros y rasgos son libres, no están
@@ -73,8 +73,13 @@ botón **✨ Aplicar beneficios** que:
   "Rasgos y dotes" — como esto SUMA a tus puntuaciones, el botón se reemplaza por **↩️ Quitar
   beneficios** para no aplicarlo dos veces por error.
 
-Si tu clase/raza no está en el compendio (por ejemplo, algo homebrew), el campo sigue siendo texto
-libre normal, simplemente no aparece el botón de auto-aplicar.
+También hay un compendio de **arquetipos/subclases base** (Dominios de clérigo, Patrones y Dones de
+Pacto de brujo —incluido Pacto del Filo—, Escuelas de mago, Caminos, Colegios, Círculos, Juramentos,
+etc.). El campo Subclase se autocompleta según la Clase que hayas puesto, y **✨ Agregar rasgos**
+suma su descripción principal a "Rasgos y dotes" (no la progresión completa nivel por nivel).
+
+Si tu clase/raza/subclase no está en el compendio (por ejemplo, algo homebrew), el campo sigue
+siendo texto libre normal, simplemente no aparece el botón de auto-aplicar.
 
 ### Conjuros: compendio, info y efectos automáticos
 

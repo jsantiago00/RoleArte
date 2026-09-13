@@ -236,6 +236,72 @@ export const CLASSES = [
   },
 ];
 
+// Arquetipos base (subclases) por clase. "category" es el nombre que usa cada clase para
+// este tipo de elección (Dominio, Camino, Patrón, etc.) y "minLevel" el nivel en que
+// normalmente se elige. Al aplicar un arquetipo se agrega su rasgo principal a "Rasgos y
+// dotes"; no incluye la progresión completa de niveles superiores.
+export const SUBCLASSES = [
+  { key: 'barbaro_berserker', classKey: 'barbaro', category: 'Camino Primigenio', minLevel: 3, name: 'Camino del Berserker', desc: 'Podés entrar en frenesí durante tu furia para atacar con más fuerza a costa de quedar agotado al terminarla.' },
+  { key: 'barbaro_totemico', classKey: 'barbaro', category: 'Camino Primigenio', minLevel: 3, name: 'Camino del Totémico', desc: 'Elegís un espíritu totémico (Oso, Águila o Lobo) que te da un beneficio especial mientras estás en furia.' },
+
+  { key: 'bardo_conocimiento', classKey: 'bardo', category: 'Colegio Bárdico', minLevel: 3, name: 'Colegio del Conocimiento (Lore)', desc: 'Ganás competencia en habilidades adicionales y podés gastar inspiración bárdica para debilitar la tirada de ataque, daño o habilidad de un enemigo.' },
+  { key: 'bardo_valor', classKey: 'bardo', category: 'Colegio Bárdico', minLevel: 3, name: 'Colegio del Valor (Valor)', desc: 'Ganás competencia con armas marciales, armadura media y escudos, y podés dar tu inspiración bárdica para sumar daño al ataque de un aliado.' },
+
+  { key: 'brujo_arconte_feerico', classKey: 'brujo', category: 'Patrón de Otro Mundo', minLevel: 1, name: 'El Arconte Feérico (Archfey)', desc: 'Tu patrón es un ser del Plano Feérico. Una vez por descanso corto o largo podés encantar o asustar a las criaturas cercanas que elijas.' },
+  { key: 'brujo_innoble', classKey: 'brujo', category: 'Patrón de Otro Mundo', minLevel: 1, name: 'El Innoble (The Fiend)', desc: 'Tu patrón es un ser del Averno o los Abismos. Cuando reducís a un enemigo a 0 PG ganás puntos de golpe temporales.' },
+  { key: 'brujo_viejo_terrible', classKey: 'brujo', category: 'Patrón de Otro Mundo', minLevel: 1, name: 'El Viejo Terrible (Great Old One)', desc: 'Tu patrón es una entidad incomprensible de otro plano. Podés comunicarte telepáticamente con criaturas cercanas.' },
+  { key: 'brujo_pacto_cadena', classKey: 'brujo', category: 'Don de Pacto', minLevel: 3, name: 'Pacto de la Cadena', desc: 'Aprendés el conjuro Encontrar Familiar y podés elegir formas especiales de familiar (pseudodragón, quasit, etc.); podés ordenarle atacar como acción adicional.' },
+  { key: 'brujo_pacto_filo', classKey: 'brujo', category: 'Don de Pacto', minLevel: 3, name: 'Pacto del Filo', desc: 'Como acción, podés crear un arma de pacto mágica en tu mano (cualquier arma cuerpo a cuerpo con la que tengas competencia). Si la soltás desaparece tras un turno, y podés volver a invocarla como acción adicional; cuenta como mágica al superar resistencias.' },
+  { key: 'brujo_pacto_tomo', classKey: 'brujo', category: 'Don de Pacto', minLevel: 3, name: 'Pacto del Tomo', desc: 'Recibís el Grimorio, un tomo que te permite aprender tres trucos adicionales de cualquier lista de conjuros.' },
+
+  { key: 'clerigo_conocimiento', classKey: 'clerigo', category: 'Dominio Divino', minLevel: 1, name: 'Dominio del Conocimiento', desc: 'Ganás competencia en habilidades de estudio (sumando el doble de tu bono de competencia en ellas) y una forma de otorgar competencias temporales a aliados.' },
+  { key: 'clerigo_vida', classKey: 'clerigo', category: 'Dominio Divino', minLevel: 1, name: 'Dominio de la Vida', desc: 'Tus conjuros de curación restauran puntos de golpe adicionales, y ganás competencia con armadura pesada.' },
+  { key: 'clerigo_luz', classKey: 'clerigo', category: 'Dominio Divino', minLevel: 1, name: 'Dominio de la Luz', desc: 'Ganás el truco Llama Sagrada y una explosión de luz cegadora que podés usar como acción adicional.' },
+  { key: 'clerigo_naturaleza', classKey: 'clerigo', category: 'Dominio Divino', minLevel: 1, name: 'Dominio de la Naturaleza', desc: 'Ganás competencia con armadura pesada, un truco adicional de la lista de druida y competencia en una habilidad relacionada con la naturaleza.' },
+  { key: 'clerigo_tempestad', classKey: 'clerigo', category: 'Dominio Divino', minLevel: 1, name: 'Dominio de la Tempestad', desc: 'Ganás competencia con armas marciales y armadura pesada, y podés sumar daño de rayo o trueno a tus ataques con arma.' },
+  { key: 'clerigo_engano', classKey: 'clerigo', category: 'Dominio Divino', minLevel: 1, name: 'Dominio del Engaño', desc: 'Podés disfrazar tu apariencia (o la de un objeto) como acción adicional para engañar a tus enemigos.' },
+  { key: 'clerigo_guerra', classKey: 'clerigo', category: 'Dominio Divino', minLevel: 1, name: 'Dominio de la Guerra', desc: 'Ganás competencia con armas marciales y armadura pesada, y podés sumar tu bono de competencia a una tirada de ataque propia o de un aliado cercano.' },
+
+  { key: 'druida_tierra', classKey: 'druida', category: 'Círculo Druídico', minLevel: 2, name: 'Círculo de la Tierra', desc: 'Ganás conjuros adicionales según el terreno donde te iniciaste, y podés recuperar espacios de conjuro gastados con un descanso corto.' },
+  { key: 'druida_luna', classKey: 'druida', category: 'Círculo Druídico', minLevel: 2, name: 'Círculo de la Luna', desc: 'Podés transformarte en bestias de mayor desafío al usar Forma Salvaje, y gastar espacios de conjuro para recuperar puntos de golpe mientras estás transformado.' },
+
+  { key: 'explorador_cazador', classKey: 'explorador', category: 'Arquetipo de Explorador', minLevel: 3, name: 'Cazador', desc: 'Elegís técnicas de cazador enfocadas en enfrentar amenazas específicas (un enemigo poderoso, un grupo de enemigos débiles, etc.).' },
+  { key: 'explorador_bestias', classKey: 'explorador', category: 'Arquetipo de Explorador', minLevel: 3, name: 'Señor de las Bestias (Beast Master)', desc: 'Ganás un compañero animal que lucha a tu lado y mejora junto con vos según subís de nivel.' },
+
+  { key: 'guerrero_campeon', classKey: 'guerrero', category: 'Arquetipo Marcial', minLevel: 3, name: 'Campeón', desc: 'Tu rango de golpe crítico con armas se amplía a 19 o 20 en el dado de ataque.' },
+  { key: 'guerrero_maestro_batalla', classKey: 'guerrero', category: 'Arquetipo Marcial', minLevel: 3, name: 'Maestro de Batalla (Battle Master)', desc: 'Ganás dados superiores y maniobras (ej. ataque certero, zancadilla) para potenciar tus ataques y maniobras marciales.' },
+  { key: 'guerrero_caballero_mistico', classKey: 'guerrero', category: 'Arquetipo Marcial', minLevel: 3, name: 'Caballero Místico (Eldritch Knight)', desc: 'Aprendés a lanzar conjuros de mago (sobre todo de Abjuración y Evocación), y podés atar un arma a vos para invocarla a tu mano.' },
+
+  { key: 'hechicero_dracónico', classKey: 'hechicero', category: 'Origen de Hechicería', minLevel: 1, name: 'Linaje Dracónico', desc: 'Elegís un tipo de dragón: ganás puntos de golpe máximos adicionales y resistencia al tipo de daño asociado a ese dragón.' },
+  { key: 'hechicero_magia_salvaje', classKey: 'hechicero', category: 'Origen de Hechicería', minLevel: 1, name: 'Magia Salvaje', desc: 'Tu magia es impredecible: al lanzar un conjuro de nivel 1 o superior podés provocar un efecto de magia salvaje aleatorio.' },
+
+  { key: 'mago_abjuracion', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Abjuración', desc: 'Copiás más rápido y barato los conjuros de abjuración, y podés crear un escudo arcano temporal que absorbe daño.' },
+  { key: 'mago_adivinacion', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Adivinación', desc: 'Copiás más rápido los conjuros de adivinación, y ganás dados especiales (Portento) para reemplazar cualquier tirada de ataque, salvación o habilidad.' },
+  { key: 'mago_conjuracion', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Conjuración', desc: 'Copiás más rápido los conjuros de conjuración, y podés invocar un espíritu menor que actúa como tus sentidos o entrega objetos a distancia.' },
+  { key: 'mago_encantamiento', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Encantamiento', desc: 'Copiás más rápido los conjuros de encantamiento, y podés hechizar brevemente a una criatura con un toque.' },
+  { key: 'mago_evocacion', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Evocación', desc: 'Copiás más rápido los conjuros de evocación, y podés esculpir tus conjuros de área para no dañar a tus aliados.' },
+  { key: 'mago_ilusion', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Ilusión', desc: 'Copiás más rápido los conjuros de ilusión, y tus ilusiones menores pueden tener propiedades físicas leves (sonido, olor, temperatura).' },
+  { key: 'mago_nigromancia', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Nigromancia', desc: 'Copiás más rápido los conjuros de nigromancia, y los muertos vivientes que creás con tus conjuros ganan puntos de golpe extra.' },
+  { key: 'mago_transmutacion', classKey: 'mago', category: 'Tradición Arcana', minLevel: 2, name: 'Escuela de Transmutación', desc: 'Copiás más rápido los conjuros de transmutación, y creás una Piedra de Transmutación que te da un beneficio menor permanente mientras la lleves.' },
+
+  { key: 'monje_mano_abierta', classKey: 'monje', category: 'Tradición Monástica', minLevel: 3, name: 'Camino de la Mano Abierta', desc: 'Tus técnicas de golpe aturdidor pueden derribar, empujar o impedir la reacción del objetivo.' },
+  { key: 'monje_sombra', classKey: 'monje', category: 'Tradición Monástica', minLevel: 3, name: 'Camino de la Sombra', desc: 'Ganás técnicas menores de ilusión y oscuridad, incluida la posibilidad de teletransportarte entre sombras.' },
+  { key: 'monje_cuatro_elementos', classKey: 'monje', category: 'Tradición Monástica', minLevel: 3, name: 'Camino de los Cuatro Elementos', desc: 'Aprendés disciplinas elementales que activás gastando puntos de ki, como golpes de fuego o ráfagas de viento.' },
+
+  { key: 'paladin_devocion', classKey: 'paladin', category: 'Juramento Sagrado', minLevel: 3, name: 'Juramento de Devoción', desc: 'Tus votos son de honestidad, honor y compasión; ganás una opción de Canalizar Divinidad para marcar a un enemigo con luz sagrada.' },
+  { key: 'paladin_ancianos', classKey: 'paladin', category: 'Juramento Sagrado', minLevel: 3, name: 'Juramento de los Ancianos', desc: 'Tus votos protegen la luz, la belleza y la vida frente a la oscuridad; ganás una opción de Canalizar Divinidad para crear un estallido cegador.' },
+  { key: 'paladin_venganza', classKey: 'paladin', category: 'Juramento Sagrado', minLevel: 3, name: 'Juramento de Venganza', desc: 'Tus votos son de castigo hacia quienes cometen grandes males; ganás una opción de Canalizar Divinidad para tener ventaja en ataques contra un objetivo elegido.' },
+
+  { key: 'picaro_ladron', classKey: 'picaro', category: 'Arquetipo de Pícaro', minLevel: 3, name: 'Ladrón (Thief)', desc: 'Podés usar objetos o herramientas con una acción adicional extra, y trepar sin penalización de velocidad.' },
+  { key: 'picaro_asesino', classKey: 'picaro', category: 'Arquetipo de Pícaro', minLevel: 3, name: 'Asesino (Assassin)', desc: 'Tenés ventaja automática en ataques contra criaturas sorprendidas, y esos golpes se consideran crítico si impactan.' },
+  { key: 'picaro_embaucador', classKey: 'picaro', category: 'Arquetipo de Pícaro', minLevel: 3, name: 'Embaucador Arcano (Arcane Trickster)', desc: 'Aprendés a lanzar conjuros de mago (sobre todo de ilusión y encantamiento), incluyendo Mano de Mago espectral.' },
+
+  { key: 'artifice_alquimista', classKey: 'artifice', category: 'Especialización de Artífice', minLevel: 3, name: 'Alquimista', desc: 'Preparás conjuros alquímicos adicionales y podés crear un experimento que replica los efectos de una poción de curación u otro brebaje.' },
+  { key: 'artifice_artillero', classKey: 'artifice', category: 'Especialización de Artífice', minLevel: 3, name: 'Artillero', desc: 'Creás un cañón mágico portátil (Eldritch Cannon) que dispara rayos de fuego, ácido o fuerza, o protege a tus aliados.' },
+  { key: 'artifice_encantador_batalla', classKey: 'artifice', category: 'Especialización de Artífice', minLevel: 3, name: 'Encantador de Batalla (Battle Smith)', desc: 'Construís un Defensor de Acero, un autómata compañero que lucha a tu lado, y podés encantar un arma para golpear a distancia con ella.' },
+  { key: 'artifice_armero', classKey: 'artifice', category: 'Especialización de Artífice', minLevel: 3, name: 'Armero (Armorer)', desc: 'Construís una armadura potenciada que vestís vos mismo, con un modelo Guardián (más resistente) o Infiltrador (más ágil).' },
+];
+
 // effectPreset: cuando existe, "Aplicar como efecto activo" crea una entrada lista en
 // Efectos activos con esos modificadores. Solo se incluyó donde el efecto es un bono
 // plano y claro; para bonos basados en dados (ej. 1d4) se usa un promedio aproximado,

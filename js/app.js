@@ -8,7 +8,7 @@ import {
   getSpellAttackBonus, getArmorClass, getSpeed, getEffectiveAbilityModifier, getEffectModifierTotal,
   uid,
 } from './sheet-data.js';
-import { RACES, CLASSES, SPELLS } from './compendium.js';
+import { RACES, CLASSES, SUBCLASSES, SPELLS } from './compendium.js';
 
 const app = document.getElementById('app');
 const collapsedCards = new Set();
@@ -203,7 +203,7 @@ async function renderList() {
 
   app.innerHTML = `
     <header class="appbar">
-      <span class="brand">🎲 Rolearte</span>
+      <span class="brand">🎲 RoleArte</span>
       <div class="menu-wrap" id="list-menu-wrap">
         <button class="icon-btn ghost" id="list-menu-btn" aria-label="Menú">⋮</button>
       </div>
@@ -343,6 +343,10 @@ function renderHeaderCard(c) {
   const appliedRace = c.raceKey ? RACES.find((r) => r.key === c.raceKey) : null;
   const matchedRace = !appliedRace ? RACES.find((r) => r.name.toLowerCase() === (c.race || '').trim().toLowerCase()) : null;
   const matchedClass = CLASSES.find((cl) => cl.name.toLowerCase() === (c.className || '').trim().toLowerCase());
+  const matchedSubclass = SUBCLASSES.find((s) => s.name.toLowerCase() === (c.subclass || '').trim().toLowerCase());
+  const subclassOptions = matchedClass
+    ? SUBCLASSES.filter((s) => s.classKey === matchedClass.key)
+    : SUBCLASSES;
 
   let raceActionHtml = '';
   if (appliedRace) {
@@ -352,6 +356,9 @@ function renderHeaderCard(c) {
   }
   const classActionHtml = matchedClass
     ? `<button type="button" class="ghost apply-btn" data-action="apply-class" data-key="${matchedClass.key}">✨ Aplicar beneficios de ${escapeHtml(matchedClass.name)}</button>`
+    : '';
+  const subclassActionHtml = matchedSubclass
+    ? `<button type="button" class="ghost apply-btn" data-action="apply-subclass" data-key="${matchedSubclass.key}">✨ Agregar rasgos de ${escapeHtml(matchedSubclass.name)}</button>`
     : '';
 
   return cardWrap('header', 'Personaje', `
@@ -369,11 +376,13 @@ function renderHeaderCard(c) {
     </div>
     <div class="field-row">
       <div class="field"><label>Clase</label><input type="text" list="class-options" data-path="className" data-type="text" data-derive-trigger="1" value="${escapeHtml(c.className)}" placeholder="Ej: Mago"></div>
-      <div class="field"><label>Subclase</label><input type="text" data-path="subclass" data-type="text" value="${escapeHtml(c.subclass)}" placeholder="Ej: Evocación"></div>
+      <div class="field"><label>Subclase</label><input type="text" list="subclass-options" data-path="subclass" data-type="text" data-derive-trigger="1" value="${escapeHtml(c.subclass)}" placeholder="Ej: Evocación"></div>
       <div class="field"><label>Nivel</label><input type="number" min="1" max="20" data-path="level" data-type="number" data-derive-trigger="1" value="${c.level}"></div>
     </div>
     ${classActionHtml ? `<p class="hint" style="margin-top:-0.4rem;">${classActionHtml}</p>` : ''}
+    ${subclassActionHtml ? `<p class="hint" style="margin-top:${classActionHtml ? '0' : '-0.4rem'};">${subclassActionHtml}</p>` : ''}
     <datalist id="class-options">${CLASS_OPTIONS.map((o) => `<option value="${o}">`).join('')}</datalist>
+    <datalist id="subclass-options">${subclassOptions.map((s) => `<option value="${s.name}">`).join('')}</datalist>
     <div class="field-row">
       <div class="field"><label>Raza / linaje</label><input type="text" list="race-options" data-path="race" data-type="text" data-derive-trigger="1" value="${escapeHtml(c.race)}"></div>
       <div class="field"><label>Trasfondo</label><input type="text" data-path="background" data-type="text" value="${escapeHtml(c.background)}"></div>
@@ -909,6 +918,24 @@ async function applyClassBenefits(classKey) {
   showToast(`Beneficios de ${cls.name} aplicados.`);
 }
 
+async function applySubclassBenefits(subclassKey) {
+  const sub = SUBCLASSES.find((s) => s.key === subclassKey);
+  if (!sub) return;
+  const ok = await showConfirm({
+    title: `Agregar rasgos de ${sub.name}`,
+    message: `Esto agrega "${sub.name}" a "Rasgos y dotes" con su descripción principal (${sub.category}, nivel ${sub.minLevel}). Es seguro aplicarlo más de una vez. ¿Continuar?`,
+    confirmLabel: 'Agregar',
+  });
+  if (!ok) return;
+  if (!current.features.some((f) => f.name === sub.name)) {
+    current.features.push({ name: sub.name, desc: sub.desc });
+  }
+  current.subclassKey = sub.key;
+  scheduleSave();
+  renderSheetView();
+  showToast(`Rasgos de ${sub.name} agregados.`);
+}
+
 function spellDetailHtml(spell) {
   return `
     <p class="hint" style="margin-top:0;">${spell.level === 0 ? 'Truco' : `Nivel ${spell.level}`} · ${escapeHtml(spell.school)}${spell.concentration ? ' · Concentración' : ''}${spell.ritual ? ' · Ritual' : ''}</p>
@@ -1087,6 +1114,8 @@ function bindSheetEvents() {
   if (removeRaceBtn) removeRaceBtn.addEventListener('click', () => removeRaceBenefits(removeRaceBtn.dataset.key));
   const applyClassBtn = main.querySelector('[data-action="apply-class"]');
   if (applyClassBtn) applyClassBtn.addEventListener('click', () => applyClassBenefits(applyClassBtn.dataset.key));
+  const applySubclassBtn = main.querySelector('[data-action="apply-subclass"]');
+  if (applySubclassBtn) applySubclassBtn.addEventListener('click', () => applySubclassBenefits(applySubclassBtn.dataset.key));
 
   // Info de conjuros y elegir del compendio
   main.querySelectorAll('[data-action="spell-info"]').forEach((btn) => {
@@ -1121,7 +1150,7 @@ function bindSheetEvents() {
   // Listas dinámicas: agregar / quitar filas
   main.querySelectorAll('[data-action]').forEach((btn) => {
     const action = btn.dataset.action;
-    if (['apply-race', 'remove-race', 'apply-class', 'spell-info', 'pick-cantrip', 'pick-spell'].includes(action)) return;
+    if (['apply-race', 'remove-race', 'apply-class', 'apply-subclass', 'spell-info', 'pick-cantrip', 'pick-spell'].includes(action)) return;
     btn.addEventListener('click', () => {
       const idx = Number(btn.dataset.index);
       const subIdx = Number(btn.dataset.subindex);
