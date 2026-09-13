@@ -57,6 +57,41 @@ Después de instalarla, funciona sin conexión (el service worker cachea la app)
   se calculan solos a partir del nivel y las características; si necesitás forzar un valor
   distinto, escribilo ahí y dejará de ser automático (borrá el campo para volver a automático).
 
+### Pestañas
+
+La ficha está dividida en pestañas (Personaje, Combate, Conjuros, Rasgos, Equipo, Notas) para no
+tener que scrollear una pantalla gigante. Cada pestaña guarda sus tarjetas colapsables propias.
+
+### Razas y clases con beneficios automáticos
+
+Al escribir una Clase o Raza que coincida con las del compendio (basado en el contenido abierto/SRD
+de D&D 5e — los 12 clases básicas + Artífice, y las razas del SRD con sus subrazas), aparece un
+botón **✨ Aplicar beneficios** que:
+- **Clase**: fija el dado de golpe y marca competencia en las salvaciones correspondientes (se puede
+  aplicar de nuevo sin problema si cambiás de nivel).
+- **Raza**: suma los bonos de característica, fija la velocidad y agrega los rasgos raciales a
+  "Rasgos y dotes" — como esto SUMA a tus puntuaciones, el botón se reemplaza por **↩️ Quitar
+  beneficios** para no aplicarlo dos veces por error.
+
+Si tu clase/raza no está en el compendio (por ejemplo, algo homebrew), el campo sigue siendo texto
+libre normal, simplemente no aparece el botón de auto-aplicar.
+
+### Conjuros: compendio, info y efectos automáticos
+
+En la pestaña Conjuros podés escribir el nombre libremente (con autocompletado) o tocar
+**📖 Elegir del compendio** para buscar y agregar un conjuro con sus datos ya cargados. El botón
+**ℹ️** junto a cada conjuro muestra escuela, tiempo de lanzamiento, alcance, duración y una
+descripción resumida. Algunos conjuros (Escudo, Bendición, Presteza, etc.) tienen un botón
+**⚡ Aplicar como efecto activo** que los agrega directamente a Efectos activos con sus
+modificadores ya cargados.
+
+### Efectos activos que modifican tus stats
+
+En Combate, cada efecto (buff, debuff, condición) puede tener uno o más **modificadores de stat**
+(CA, iniciativa, velocidad, una característica, una salvación, una habilidad, CD/bono de conjuros).
+Mientras el efecto esté en la lista, esos bonos o penalizaciones se suman automáticamente a los
+cálculos de la ficha; al borrar el efecto (o cuando termina su duración en rondas) dejan de aplicarse.
+
 ## Respaldo de tus personajes
 
 Como los datos viven solo en el navegador donde los cargaste, usá **Exportar** cada tanto para
@@ -68,7 +103,8 @@ guardar un `.json` de respaldo, y **Importar** para pasarlos a otro dispositivo 
 index.html              Punto de entrada
 css/styles.css          Estilos
 js/app.js               Lógica de la interfaz y navegación
-js/sheet-data.js        Modelo de datos de la ficha y cálculos (modificadores, bonos, etc.)
+js/sheet-data.js        Modelo de datos de la ficha y cálculos (modificadores, bonos, efectos, etc.)
+js/compendium.js        Compendio editable de razas, clases y conjuros (basado en SRD)
 js/db.js                Acceso a IndexedDB (con respaldo en localStorage si no está disponible)
 manifest.webmanifest    Metadatos de la PWA
 sw.js                   Service worker (funcionamiento offline)

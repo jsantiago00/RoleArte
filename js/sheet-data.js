@@ -93,9 +93,11 @@ export function createDefaultCharacter() {
     image: '', // dataURL
     playerName: '',
     className: '',
+    classKey: null, // clave de CLASSES cuyos beneficios ya se aplicaron
     subclass: '',
     level: 1,
     race: '',
+    raceKey: null, // clave de RACES cuyos beneficios ya se aplicaron
     background: '',
     alignment: '',
 
@@ -142,6 +144,36 @@ export const EFFECT_KINDS = {
   other: 'Otro',
 };
 
+// Objetivos que un modificador de efecto puede afectar mientras el efecto está activo.
+export const EFFECT_TARGETS = [
+  { value: 'ac', label: 'Clase de armadura', group: 'Combate' },
+  { value: 'initiative', label: 'Iniciativa', group: 'Combate' },
+  { value: 'speed', label: 'Velocidad', group: 'Combate' },
+  { value: 'spellDc', label: 'CD de salvación de conjuros', group: 'Conjuros' },
+  { value: 'spellAttack', label: 'Bono de ataque de conjuros', group: 'Conjuros' },
+  ...ABILITIES.map((a) => ({ value: `abilityScore.${a.key}`, label: `Puntuación de ${a.label}`, group: 'Características' })),
+  ...ABILITIES.map((a) => ({ value: `save.${a.key}`, label: `Salvación de ${a.label}`, group: 'Salvaciones' })),
+  ...SKILLS.map((s) => ({ value: `skill.${s.key}`, label: s.label, group: 'Habilidades' })),
+];
+
+export function createEffect() {
+  return { name: '', kind: 'buff', rounds: null, notes: '', modifiers: [] };
+}
+
+export function getEffectModifierTotal(character, target) {
+  return (character.effects || []).reduce((total, effect) => {
+    const fromEffect = (effect.modifiers || [])
+      .filter((m) => m.target === target)
+      .reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+    return total + fromEffect;
+  }, 0);
+}
+
+export function getEffectiveAbilityScore(character, abilityKey) {
+  const base = Number(character.abilities[abilityKey]) || 0;
+  return base + getEffectModifierTotal(character, `abilityScore.${abilityKey}`);
+}
+
 export function migrateCharacter(char) {
   // Asegura que personajes guardados con versiones anteriores tengan todos los campos.
   const base = createDefaultCharacter();
@@ -161,7 +193,9 @@ export function migrateCharacter(char) {
   };
   merged.attacks = char.attacks || [];
   merged.features = char.features || [];
-  merged.effects = char.effects || [];
+  merged.effects = (char.effects || []).map((e) => ({ ...createEffect(), ...e, modifiers: e.modifiers || [] }));
+  merged.raceKey = char.raceKey || null;
+  merged.classKey = char.classKey || null;
   return merged;
 }
 
@@ -172,19 +206,25 @@ export function getProficiencyBonus(character) {
   return proficiencyBonusForLevel(character.level);
 }
 
+export function getEffectiveAbilityModifier(character, abilityKey) {
+  return abilityModifier(getEffectiveAbilityScore(character, abilityKey));
+}
+
 export function getSaveBonus(character, abilityKey) {
-  const mod = abilityModifier(character.abilities[abilityKey]);
+  const mod = abilityModifier(getEffectiveAbilityScore(character, abilityKey));
   const isProf = !!character.saveProficiencies[abilityKey];
-  return mod + (isProf ? getProficiencyBonus(character) : 0);
+  const effectBonus = getEffectModifierTotal(character, `save.${abilityKey}`);
+  return mod + (isProf ? getProficiencyBonus(character) : 0) + effectBonus;
 }
 
 export function getSkillBonus(character, skill) {
-  const mod = abilityModifier(character.abilities[skill.ability]);
+  const mod = abilityModifier(getEffectiveAbilityScore(character, skill.ability));
   const prof = character.skillProficiencies[skill.key];
   const pb = getProficiencyBonus(character);
-  if (prof === 'expertise') return mod + pb * 2;
-  if (prof === 'prof') return mod + pb;
-  return mod;
+  const effectBonus = getEffectModifierTotal(character, `skill.${skill.key}`);
+  if (prof === 'expertise') return mod + pb * 2 + effectBonus;
+  if (prof === 'prof') return mod + pb + effectBonus;
+  return mod + effectBonus;
 }
 
 export function getPassivePerception(character) {
@@ -193,21 +233,33 @@ export function getPassivePerception(character) {
 }
 
 export function getInitiative(character) {
-  return abilityModifier(character.abilities.dex) + (Number(character.initiativeMisc) || 0);
+  return abilityModifier(getEffectiveAbilityScore(character, 'dex'))
+    + (Number(character.initiativeMisc) || 0)
+    + getEffectModifierTotal(character, 'initiative');
+}
+
+export function getArmorClass(character) {
+  return (Number(character.ac) || 0) + getEffectModifierTotal(character, 'ac');
+}
+
+export function getSpeed(character) {
+  return (Number(character.speed) || 0) + getEffectModifierTotal(character, 'speed');
 }
 
 export function getSpellSaveDc(character) {
+  const effectBonus = getEffectModifierTotal(character, 'spellDc');
   if (typeof character.spellcasting.saveDcOverride === 'number') {
-    return character.spellcasting.saveDcOverride;
+    return character.spellcasting.saveDcOverride + effectBonus;
   }
-  const mod = abilityModifier(character.abilities[character.spellcasting.ability]);
-  return 8 + getProficiencyBonus(character) + mod;
+  const mod = abilityModifier(getEffectiveAbilityScore(character, character.spellcasting.ability));
+  return 8 + getProficiencyBonus(character) + mod + effectBonus;
 }
 
 export function getSpellAttackBonus(character) {
+  const effectBonus = getEffectModifierTotal(character, 'spellAttack');
   if (typeof character.spellcasting.attackBonusOverride === 'number') {
-    return character.spellcasting.attackBonusOverride;
+    return character.spellcasting.attackBonusOverride + effectBonus;
   }
-  const mod = abilityModifier(character.abilities[character.spellcasting.ability]);
-  return getProficiencyBonus(character) + mod;
+  const mod = abilityModifier(getEffectiveAbilityScore(character, character.spellcasting.ability));
+  return getProficiencyBonus(character) + mod + effectBonus;
 }

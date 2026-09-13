@@ -1,16 +1,29 @@
 import * as db from './db.js';
 import {
-  ABILITIES, SKILLS, CLASS_OPTIONS, ALIGNMENTS, HIT_DICE_TYPES, CURRENCIES, EFFECT_KINDS,
+  ABILITIES, SKILLS, CLASS_OPTIONS, ALIGNMENTS, HIT_DICE_TYPES, CURRENCIES,
+  EFFECT_KINDS, EFFECT_TARGETS,
   abilityModifier, formatModifier, proficiencyBonusForLevel,
-  createDefaultCharacter, migrateCharacter, getSaveBonus,
-  getSkillBonus, getPassivePerception, getInitiative, getSpellSaveDc, getSpellAttackBonus,
+  createDefaultCharacter, migrateCharacter, createEffect,
+  getSaveBonus, getSkillBonus, getPassivePerception, getInitiative, getSpellSaveDc,
+  getSpellAttackBonus, getArmorClass, getSpeed, getEffectiveAbilityModifier, getEffectModifierTotal,
   uid,
 } from './sheet-data.js';
+import { RACES, CLASSES, SPELLS } from './compendium.js';
 
 const app = document.getElementById('app');
 const collapsedCards = new Set();
 let current = null; // personaje actualmente abierto en memoria
 let saveTimer = null;
+let activeTab = 'personaje';
+
+const TABS = [
+  { id: 'personaje', label: 'Personaje' },
+  { id: 'combate', label: 'Combate' },
+  { id: 'conjuros', label: 'Conjuros' },
+  { id: 'rasgos', label: 'Rasgos' },
+  { id: 'equipo', label: 'Equipo' },
+  { id: 'notas', label: 'Notas' },
+];
 
 // ---------- Utilidades ----------
 function escapeHtml(str) {
@@ -73,6 +86,25 @@ function showConfirm({ title, message, confirmLabel = 'Confirmar', danger = fals
       }
     });
   });
+}
+
+function showModal(title, bodyHtml) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal modal-lg">
+      <div class="modal-header-row">
+        <h3>${escapeHtml(title)}</h3>
+        <button class="icon-btn ghost" data-act="close">✕</button>
+      </div>
+      <div class="modal-body">${bodyHtml}</div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const close = () => backdrop.remove();
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop || e.target.dataset.act === 'close') close();
+  });
+  return { backdrop, close };
 }
 
 function downloadJson(filename, data) {
@@ -146,6 +178,7 @@ async function openSheet(id) {
     return;
   }
   current = migrateCharacter(raw);
+  activeTab = 'personaje';
   renderSheetView();
 }
 
@@ -307,6 +340,20 @@ function cardWrap(id, title, bodyHtml) {
 }
 
 function renderHeaderCard(c) {
+  const appliedRace = c.raceKey ? RACES.find((r) => r.key === c.raceKey) : null;
+  const matchedRace = !appliedRace ? RACES.find((r) => r.name.toLowerCase() === (c.race || '').trim().toLowerCase()) : null;
+  const matchedClass = CLASSES.find((cl) => cl.name.toLowerCase() === (c.className || '').trim().toLowerCase());
+
+  let raceActionHtml = '';
+  if (appliedRace) {
+    raceActionHtml = `<button type="button" class="ghost apply-btn" data-action="remove-race" data-key="${appliedRace.key}">↩️ Quitar beneficios de ${escapeHtml(appliedRace.name)}</button>`;
+  } else if (matchedRace) {
+    raceActionHtml = `<button type="button" class="ghost apply-btn" data-action="apply-race" data-key="${matchedRace.key}">✨ Aplicar beneficios de ${escapeHtml(matchedRace.name)}</button>`;
+  }
+  const classActionHtml = matchedClass
+    ? `<button type="button" class="ghost apply-btn" data-action="apply-class" data-key="${matchedClass.key}">✨ Aplicar beneficios de ${escapeHtml(matchedClass.name)}</button>`
+    : '';
+
   return cardWrap('header', 'Personaje', `
     <div class="portrait-upload">
       <div class="portrait-preview" id="portrait-preview" style="${c.image ? `background-image:url('${c.image}')` : ''}">${c.image ? '' : '🧙'}</div>
@@ -321,15 +368,18 @@ function renderHeaderCard(c) {
       <div class="field"><label>Jugador/a</label><input type="text" data-path="playerName" data-type="text" value="${escapeHtml(c.playerName)}"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Clase</label><input type="text" list="class-options" data-path="className" data-type="text" value="${escapeHtml(c.className)}" placeholder="Ej: Mago"></div>
+      <div class="field"><label>Clase</label><input type="text" list="class-options" data-path="className" data-type="text" data-derive-trigger="1" value="${escapeHtml(c.className)}" placeholder="Ej: Mago"></div>
       <div class="field"><label>Subclase</label><input type="text" data-path="subclass" data-type="text" value="${escapeHtml(c.subclass)}" placeholder="Ej: Evocación"></div>
       <div class="field"><label>Nivel</label><input type="number" min="1" max="20" data-path="level" data-type="number" data-derive-trigger="1" value="${c.level}"></div>
     </div>
+    ${classActionHtml ? `<p class="hint" style="margin-top:-0.4rem;">${classActionHtml}</p>` : ''}
     <datalist id="class-options">${CLASS_OPTIONS.map((o) => `<option value="${o}">`).join('')}</datalist>
     <div class="field-row">
-      <div class="field"><label>Raza / linaje</label><input type="text" data-path="race" data-type="text" value="${escapeHtml(c.race)}"></div>
+      <div class="field"><label>Raza / linaje</label><input type="text" list="race-options" data-path="race" data-type="text" data-derive-trigger="1" value="${escapeHtml(c.race)}"></div>
       <div class="field"><label>Trasfondo</label><input type="text" data-path="background" data-type="text" value="${escapeHtml(c.background)}"></div>
     </div>
+    ${raceActionHtml ? `<p class="hint" style="margin-top:-0.4rem;">${raceActionHtml}</p>` : ''}
+    <datalist id="race-options">${RACES.map((r) => `<option value="${r.name}">`).join('')}</datalist>
     <div class="field-row">
       <div class="field">
         <label>Alineamiento</label>
@@ -350,13 +400,15 @@ function renderHeaderCard(c) {
 
 function renderAbilitiesCard(c) {
   const boxes = ABILITIES.map((a) => {
-    const mod = abilityModifier(c.abilities[a.key]);
+    const mod = getEffectiveAbilityModifier(c, a.key);
     const save = getSaveBonus(c, a.key);
+    const effectBonus = getEffectModifierTotal(c, `abilityScore.${a.key}`);
     return `
       <div class="ability-box">
         <label>${a.label}</label>
         <input type="number" data-path="abilities.${a.key}" data-type="number" value="${c.abilities[a.key]}">
         <div class="mod" data-derived="mod.${a.key}">${formatModifier(mod)}</div>
+        ${effectBonus ? `<div class="mod-note" data-derived="modnote.${a.key}">(${formatModifier(effectBonus)} por efecto)</div>` : `<div class="mod-note" data-derived="modnote.${a.key}"></div>`}
         <div class="save-row">
           <input type="checkbox" data-path="saveProficiencies.${a.key}" data-type="checkbox" ${c.saveProficiencies[a.key] ? 'checked' : ''}>
           <span>Salvación <b data-derived="save.${a.key}">${formatModifier(save)}</b></span>
@@ -390,12 +442,18 @@ function renderSkillsCard(c) {
 function renderCombatCard(c) {
   return cardWrap('combat', 'Combate', `
     <div class="stat-grid">
-      <div class="stat-box"><label>Clase de armadura</label><input type="number" data-path="ac" data-type="number" value="${c.ac}"></div>
+      <div class="stat-box"><label>CA base</label><input type="number" data-path="ac" data-type="number" value="${c.ac}"></div>
+      <div class="stat-box"><label>CA total</label>
+        <div class="computed" data-derived="ac">${getArmorClass(c)}</div>
+      </div>
       <div class="stat-box"><label>Iniciativa</label>
         <div class="computed" data-derived="initiative">${formatModifier(getInitiative(c))}</div>
       </div>
       <div class="stat-box"><label>Bono iniciativa (extra)</label><input type="number" data-path="initiativeMisc" data-type="number" value="${c.initiativeMisc}"></div>
-      <div class="stat-box"><label>Velocidad</label><input type="number" data-path="speed" data-type="number" value="${c.speed}"></div>
+      <div class="stat-box"><label>Velocidad base</label><input type="number" data-path="speed" data-type="number" value="${c.speed}"></div>
+      <div class="stat-box"><label>Velocidad total</label>
+        <div class="computed" data-derived="speed">${getSpeed(c)}</div>
+      </div>
     </div>
     <div class="field-row" style="margin-top:0.8rem;">
       <div class="field"><label>PG máximos</label><input type="number" data-path="hpMax" data-type="number" value="${c.hpMax}"></div>
@@ -432,8 +490,29 @@ function renderCombatCard(c) {
   `);
 }
 
+function effectTargetOptionsHtml(selected) {
+  const groups = {};
+  EFFECT_TARGETS.forEach((t) => {
+    groups[t.group] = groups[t.group] || [];
+    groups[t.group].push(t);
+  });
+  return Object.entries(groups).map(([group, items]) => `
+    <optgroup label="${group}">
+      ${items.map((t) => `<option value="${t.value}" ${selected === t.value ? 'selected' : ''}>${t.label}</option>`).join('')}
+    </optgroup>`).join('');
+}
+
 function renderEffectsCard(c) {
-  const rows = c.effects.map((e, i) => `
+  const rows = c.effects.map((e, i) => {
+    const modifiersHtml = (e.modifiers || []).map((m, mi) => `
+      <div class="modifier-row">
+        <select data-path="effects.${i}.modifiers.${mi}.target" data-type="text">
+          ${effectTargetOptionsHtml(m.target)}
+        </select>
+        <input type="number" data-path="effects.${i}.modifiers.${mi}.amount" data-type="number" value="${m.amount}" placeholder="+/-">
+        <button type="button" class="icon-btn danger" data-action="remove-modifier" data-index="${i}" data-subindex="${mi}">✕</button>
+      </div>`).join('');
+    return `
     <div class="row-card effect-row effect-${e.kind || 'other'}">
       <button class="remove-btn danger" data-action="remove-effect" data-index="${i}">✕</button>
       <div class="row-grid">
@@ -447,11 +526,15 @@ function renderEffectsCard(c) {
           <input type="number" min="0" data-path="effects.${i}.rounds" data-type="number" data-allow-null="1" placeholder="Sin límite" value="${typeof e.rounds === 'number' ? e.rounds : ''}">
         </div>
       </div>
-      <div class="field" style="margin-top:0.5rem;margin-bottom:0;"><label>Notas</label><input type="text" data-path="effects.${i}.notes" data-type="text" value="${escapeHtml(e.notes)}" placeholder="Ej: +2 CA, desventaja en ataques..."></div>
+      <div class="field" style="margin-top:0.5rem;margin-bottom:0.5rem;"><label>Notas</label><input type="text" data-path="effects.${i}.notes" data-type="text" value="${escapeHtml(e.notes)}" placeholder="Ej: +2 CA, desventaja en ataques..."></div>
+      <label>Modifica mientras esté activo</label>
+      <div class="modifiers-list">${modifiersHtml}</div>
+      <button type="button" class="ghost add-row-btn" data-action="add-modifier" data-index="${i}">+ Modificador de stat</button>
       ${typeof e.rounds === 'number' ? `<button class="tick-btn ghost" data-action="tick-effect" data-index="${i}">−1 ronda (quedan ${e.rounds})</button>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
   return cardWrap('effects', 'Efectos activos', `
-    <p class="hint">Estados, escudos, buffs o debuffs temporales durante el combate.</p>
+    <p class="hint">Estados, escudos, buffs o debuffs temporales durante el combate. Los modificadores de stat se suman automáticamente a las tiradas mientras el efecto siga acá.</p>
     <div class="list-rows">${rows}</div>
     <button class="add-row-btn" data-action="add-effect">+ Añadir efecto</button>
   `);
@@ -480,7 +563,10 @@ function renderAttacksSpellsCard(c) {
     const cantripsHtml = sc.cantrips.map((name, i) => `
       <div class="row-card">
         <button class="remove-btn danger" data-action="remove-cantrip" data-index="${i}">✕</button>
-        <div class="field"><label>Truco</label><input type="text" data-path="spellcasting.cantrips.${i}" data-type="text" value="${escapeHtml(name)}"></div>
+        <div class="row-grid-info">
+          <div class="field" style="margin-bottom:0;"><label>Truco</label><input type="text" list="spell-options" data-path="spellcasting.cantrips.${i}" data-type="text" value="${escapeHtml(name)}"></div>
+          <button type="button" class="icon-btn ghost" data-action="spell-info">ℹ️</button>
+        </div>
       </div>`).join('');
 
     const spellsHtml = sc.spells.map((sp, i) => `
@@ -490,9 +576,14 @@ function renderAttacksSpellsCard(c) {
           <div class="field"><label>Nivel</label>
             <input type="number" min="1" max="9" data-path="spellcasting.spells.${i}.level" data-type="number" value="${sp.level}">
           </div>
-          <div class="field"><label>Nombre</label><input type="text" data-path="spellcasting.spells.${i}.name" data-type="text" value="${escapeHtml(sp.name)}"></div>
-          <div class="field"><label>Notas</label><input type="text" data-path="spellcasting.spells.${i}.notes" data-type="text" value="${escapeHtml(sp.notes)}"></div>
+          <div class="field" style="grid-column: span 2;"><label>Nombre</label>
+            <div class="row-grid-info">
+              <input type="text" list="spell-options" data-path="spellcasting.spells.${i}.name" data-type="text" value="${escapeHtml(sp.name)}">
+              <button type="button" class="icon-btn ghost" data-action="spell-info">ℹ️</button>
+            </div>
+          </div>
         </div>
+        <div class="field" style="margin-top:0.5rem;margin-bottom:0;"><label>Notas</label><input type="text" data-path="spellcasting.spells.${i}.notes" data-type="text" value="${escapeHtml(sp.notes)}"></div>
         <div class="checkbox-line" style="margin-top:0.5rem;">
           <input type="checkbox" data-path="spellcasting.spells.${i}.prepared" data-type="checkbox" ${sp.prepared ? 'checked' : ''}>
           <label>Preparado</label>
@@ -537,10 +628,17 @@ function renderAttacksSpellsCard(c) {
       </table>
       <label style="margin-top:0.9rem;">Trucos</label>
       <div class="list-rows">${cantripsHtml}</div>
-      <button class="add-row-btn" data-action="add-cantrip">+ Añadir truco</button>
+      <div class="button-row">
+        <button class="add-row-btn" data-action="add-cantrip">+ Añadir truco</button>
+        <button class="add-row-btn" data-action="pick-cantrip">📖 Elegir del compendio</button>
+      </div>
       <label style="margin-top:0.9rem;">Conjuros</label>
       <div class="list-rows">${spellsHtml}</div>
-      <button class="add-row-btn" data-action="add-spell">+ Añadir conjuro</button>
+      <div class="button-row">
+        <button class="add-row-btn" data-action="add-spell">+ Añadir conjuro</button>
+        <button class="add-row-btn" data-action="pick-spell">📖 Elegir del compendio</button>
+      </div>
+      <datalist id="spell-options">${SPELLS.map((s) => `<option value="${s.name}">`).join('')}</datalist>
     `;
   }
 
@@ -561,7 +659,7 @@ function renderFeaturesCard(c) {
       <div class="field" style="margin-bottom:0;"><label>Descripción</label><textarea data-path="features.${i}.desc" data-type="text">${escapeHtml(f.desc)}</textarea></div>
     </div>`).join('');
   return cardWrap('features', 'Rasgos y dotes', `
-    <p class="hint">Rasgos de raza, de clase, de subclase, dotes, etc.</p>
+    <p class="hint">Rasgos de raza, de clase, de subclase, dotes, etc. (los de raza se pueden agregar automáticamente desde la pestaña Personaje).</p>
     <div class="list-rows">${rows}</div>
     <button class="add-row-btn" data-action="add-feature">+ Añadir rasgo</button>
   `);
@@ -570,7 +668,7 @@ function renderFeaturesCard(c) {
 function renderBackgroundCard(c) {
   return cardWrap('background', 'Trasfondo', `
     <div class="field"><label>Beneficio de trasfondo</label><textarea data-path="backgroundFeature" data-type="text">${escapeHtml(c.backgroundFeature)}</textarea></div>
-    <div class="field"><label>Competencias e idiomas</label><textarea data-path="proficienciesLanguages" data-type="text" placeholder="Armaduras, armas, herramientas, idiomas...">${escapeHtml(c.proficienciesLanguages)}</textarea></div>
+    <div class="field"><label>Competencias e idiomas</label><textarea data-path="proficienciesLanguages" data-type="text" rows="5" placeholder="Armaduras, armas, herramientas, idiomas...">${escapeHtml(c.proficienciesLanguages)}</textarea></div>
   `);
 }
 
@@ -591,6 +689,22 @@ function renderNotesCard(c) {
   `);
 }
 
+function tabContentHtml(tabId, c) {
+  if (tabId === 'personaje') return renderHeaderCard(c) + renderAbilitiesCard(c) + renderSkillsCard(c);
+  if (tabId === 'combate') return renderCombatCard(c) + renderEffectsCard(c);
+  if (tabId === 'conjuros') return renderAttacksSpellsCard(c);
+  if (tabId === 'rasgos') return renderFeaturesCard(c) + renderBackgroundCard(c);
+  if (tabId === 'equipo') return renderEquipmentCard(c);
+  if (tabId === 'notas') return renderNotesCard(c);
+  return '';
+}
+
+function renderTabMain() {
+  const main = document.getElementById('sheet-main');
+  main.innerHTML = tabContentHtml(activeTab, current);
+  bindSheetEvents();
+}
+
 function renderSheetView() {
   const c = current;
   app.innerHTML = `
@@ -601,17 +715,11 @@ function renderSheetView() {
         <button class="icon-btn ghost" id="sheet-menu-btn" aria-label="Menú">⋮</button>
       </div>
     </header>
+    <nav class="tabbar">
+      ${TABS.map((t) => `<button type="button" class="tab-btn ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
+    </nav>
     <main id="sheet-main">
-      ${renderHeaderCard(c)}
-      ${renderAbilitiesCard(c)}
-      ${renderSkillsCard(c)}
-      ${renderCombatCard(c)}
-      ${renderEffectsCard(c)}
-      ${renderAttacksSpellsCard(c)}
-      ${renderFeaturesCard(c)}
-      ${renderBackgroundCard(c)}
-      ${renderEquipmentCard(c)}
-      ${renderNotesCard(c)}
+      ${tabContentHtml(activeTab, c)}
     </main>
   `;
 
@@ -620,6 +728,15 @@ function renderSheetView() {
   document.getElementById('sheet-menu-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     toggleSheetMenu();
+  });
+
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.tab === activeTab) return;
+      activeTab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === activeTab));
+      renderTabMain();
+    });
   });
 
   bindSheetEvents();
@@ -678,7 +795,12 @@ function updateDerivedFields() {
   const c = current;
   ABILITIES.forEach((a) => {
     const modEl = document.querySelector(`[data-derived="mod.${a.key}"]`);
-    if (modEl) modEl.textContent = formatModifier(abilityModifier(c.abilities[a.key]));
+    if (modEl) modEl.textContent = formatModifier(getEffectiveAbilityModifier(c, a.key));
+    const noteEl = document.querySelector(`[data-derived="modnote.${a.key}"]`);
+    if (noteEl) {
+      const bonus = getEffectModifierTotal(c, `abilityScore.${a.key}`);
+      noteEl.textContent = bonus ? `(${formatModifier(bonus)} por efecto)` : '';
+    }
     const saveEl = document.querySelector(`[data-derived="save.${a.key}"]`);
     if (saveEl) saveEl.textContent = formatModifier(getSaveBonus(c, a.key));
   });
@@ -690,6 +812,10 @@ function updateDerivedFields() {
   if (pp) pp.textContent = getPassivePerception(c);
   const init = document.querySelector('[data-derived="initiative"]');
   if (init) init.textContent = formatModifier(getInitiative(c));
+  const acEl = document.querySelector('[data-derived="ac"]');
+  if (acEl) acEl.textContent = getArmorClass(c);
+  const speedEl = document.querySelector('[data-derived="speed"]');
+  if (speedEl) speedEl.textContent = getSpeed(c);
 
   const pbInput = document.querySelector('[data-path="proficiencyBonusOverride"]');
   if (pbInput && document.activeElement !== pbInput) {
@@ -706,6 +832,150 @@ function updateDerivedFields() {
 
   const titleEl = document.querySelector('.appbar h1');
   if (titleEl) titleEl.textContent = c.name || 'Nuevo personaje';
+}
+
+// ---------- Compendio: razas, clases y conjuros ----------
+async function applyRaceBenefits(raceKey) {
+  const race = RACES.find((r) => r.key === raceKey);
+  if (!race) return;
+  const bonusList = Object.entries(race.abilityBonuses || {})
+    .map(([k, v]) => `${ABILITIES.find((a) => a.key === k).label} +${v}`).join(', ') || 'ninguno';
+  const ok = await showConfirm({
+    title: `Aplicar beneficios de ${race.name}`,
+    message: `Esto SUMA a tus puntuaciones actuales: ${bonusList}. También fija la velocidad en ${race.speed} m y agrega los rasgos raciales a "Rasgos y dotes". ¿Continuar?`,
+    confirmLabel: 'Aplicar',
+  });
+  if (!ok) return;
+  Object.entries(race.abilityBonuses || {}).forEach(([k, v]) => {
+    current.abilities[k] = (Number(current.abilities[k]) || 0) + v;
+  });
+  current.speed = race.speed;
+  race.traits.forEach((t) => {
+    if (!current.features.some((f) => f.name === t.name)) {
+      current.features.push({ name: t.name, desc: t.desc });
+    }
+  });
+  const langNote = `Idiomas (${race.name}): ${race.languages}`;
+  if (!current.proficienciesLanguages.includes(langNote)) {
+    current.proficienciesLanguages = current.proficienciesLanguages ? `${current.proficienciesLanguages}\n${langNote}` : langNote;
+  }
+  current.raceKey = race.key;
+  scheduleSave();
+  renderSheetView();
+  showToast(`Beneficios de ${race.name} aplicados.`);
+}
+
+async function removeRaceBenefits(raceKey) {
+  const race = RACES.find((r) => r.key === raceKey);
+  if (!race) return;
+  const ok = await showConfirm({
+    title: `Quitar beneficios de ${race.name}`,
+    message: 'Esto resta de tus puntuaciones los bonos que se sumaron al aplicar esta raza. Los rasgos y notas de idioma agregados hay que borrarlos a mano si ya no los querés.',
+    confirmLabel: 'Quitar',
+    danger: true,
+  });
+  if (!ok) return;
+  Object.entries(race.abilityBonuses || {}).forEach(([k, v]) => {
+    current.abilities[k] = (Number(current.abilities[k]) || 0) - v;
+  });
+  current.raceKey = null;
+  scheduleSave();
+  renderSheetView();
+  showToast('Beneficios de raza removidos.');
+}
+
+async function applyClassBenefits(classKey) {
+  const cls = CLASSES.find((cl) => cl.key === classKey);
+  if (!cls) return;
+  const saveNames = cls.savingThrows.map((k) => ABILITIES.find((a) => a.key === k).label).join(' y ');
+  const ok = await showConfirm({
+    title: `Aplicar beneficios de ${cls.name}`,
+    message: `Esto fija el dado de golpe en ${cls.hitDie} y marca competencia en las salvaciones de ${saveNames}. Es seguro aplicarlo más de una vez. ¿Continuar?`,
+    confirmLabel: 'Aplicar',
+  });
+  if (!ok) return;
+  current.hitDice.type = cls.hitDie;
+  cls.savingThrows.forEach((k) => { current.saveProficiencies[k] = true; });
+  const skillLabel = cls.skillOptions === 'any'
+    ? `elegí ${cls.skillChoiceCount} habilidades cualesquiera al nivel 1`
+    : `elegí ${cls.skillChoiceCount} entre: ${cls.skillOptions.map((k) => SKILLS.find((s) => s.key === k).label).join(', ')}`;
+  const skillNote = `Habilidades (${cls.name}): ${skillLabel}.`;
+  if (!current.proficienciesLanguages.includes(skillNote)) {
+    current.proficienciesLanguages = current.proficienciesLanguages ? `${current.proficienciesLanguages}\n${skillNote}` : skillNote;
+  }
+  current.classKey = cls.key;
+  scheduleSave();
+  renderSheetView();
+  showToast(`Beneficios de ${cls.name} aplicados.`);
+}
+
+function spellDetailHtml(spell) {
+  return `
+    <p class="hint" style="margin-top:0;">${spell.level === 0 ? 'Truco' : `Nivel ${spell.level}`} · ${escapeHtml(spell.school)}${spell.concentration ? ' · Concentración' : ''}${spell.ritual ? ' · Ritual' : ''}</p>
+    <p><b>Tiempo de lanzamiento:</b> ${escapeHtml(spell.castingTime)}</p>
+    <p><b>Alcance:</b> ${escapeHtml(spell.range)}</p>
+    <p><b>Duración:</b> ${escapeHtml(spell.duration)}</p>
+    <p>${escapeHtml(spell.desc)}</p>
+    ${spell.effectPreset ? '<button type="button" id="apply-spell-effect" class="primary" style="width:100%;margin-top:0.5rem;">⚡ Aplicar como efecto activo</button>' : '<p class="hint">Este conjuro no tiene un modificador automático cargado; podés añadir uno manual en Efectos activos.</p>'}
+  `;
+}
+
+function openSpellInfo(spell) {
+  const { backdrop, close } = showModal(spell.name, spellDetailHtml(spell));
+  const applyBtn = backdrop.querySelector('#apply-spell-effect');
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      current.effects.push({
+        ...createEffect(),
+        name: spell.name,
+        kind: spell.effectPreset.kind,
+        rounds: spell.effectPreset.rounds,
+        notes: `Conjuro: ${spell.name}`,
+        modifiers: spell.effectPreset.modifiers.map((m) => ({ ...m })),
+      });
+      scheduleSave();
+      close();
+      activeTab = 'combate';
+      renderSheetView();
+      showToast('Efecto añadido en la pestaña Combate.');
+    });
+  }
+}
+
+function openSpellPicker(onPick) {
+  const { backdrop } = showModal('Elegir del compendio', `
+    <input type="text" id="spell-search" placeholder="Buscar conjuro..." style="margin-bottom:0.6rem;">
+    <div id="spell-picker-list" class="list-rows"></div>
+  `);
+  const listEl = backdrop.querySelector('#spell-picker-list');
+  const searchInput = backdrop.querySelector('#spell-search');
+  function renderPickerList(filter) {
+    const f = filter.trim().toLowerCase();
+    const filtered = SPELLS
+      .filter((s) => s.name.toLowerCase().includes(f))
+      .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+    listEl.innerHTML = filtered.slice(0, 60).map((s) => `
+      <button type="button" class="spell-pick-row" data-key="${s.key}">
+        <span class="spell-pick-name">${escapeHtml(s.name)}</span>
+        <span class="spell-pick-level">${s.level === 0 ? 'Truco' : `Nv. ${s.level}`}</span>
+      </button>`).join('') || '<p class="hint">Sin resultados.</p>';
+    listEl.querySelectorAll('[data-key]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const spell = SPELLS.find((s) => s.key === btn.dataset.key);
+        backdrop.remove();
+        onPick(spell);
+      });
+    });
+  }
+  renderPickerList('');
+  searchInput.addEventListener('input', () => renderPickerList(searchInput.value));
+  searchInput.focus();
+}
+
+function findSpellByName(name) {
+  const n = (name || '').trim().toLowerCase();
+  if (!n) return null;
+  return SPELLS.find((s) => s.name.toLowerCase() === n) || null;
 }
 
 function bindSheetEvents() {
@@ -759,7 +1029,7 @@ function bindSheetEvents() {
       const value = elm.type === 'checkbox' ? elm.checked : elm.value;
       setPath(current, path, value);
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
     });
   });
 
@@ -770,7 +1040,7 @@ function bindSheetEvents() {
       const idx = Number(idxStr);
       current.deathSaves[field] = cb.checked ? idx + 1 : idx;
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
     });
   });
   const resetDeathBtn = document.getElementById('reset-death-saves');
@@ -778,7 +1048,7 @@ function bindSheetEvents() {
     resetDeathBtn.addEventListener('click', () => {
       current.deathSaves = { successes: 0, failures: 0 };
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
     });
   }
 
@@ -796,7 +1066,7 @@ function bindSheetEvents() {
       try {
         current.image = await resizeImageFile(file);
         scheduleSave();
-        renderSheetView();
+        renderTabMain();
       } catch (err) {
         showToast('No se pudo procesar la imagen.');
       }
@@ -806,15 +1076,55 @@ function bindSheetEvents() {
     removeBtn.addEventListener('click', () => {
       current.image = '';
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
+    });
+  }
+
+  // Beneficios de raza / clase
+  const applyRaceBtn = main.querySelector('[data-action="apply-race"]');
+  if (applyRaceBtn) applyRaceBtn.addEventListener('click', () => applyRaceBenefits(applyRaceBtn.dataset.key));
+  const removeRaceBtn = main.querySelector('[data-action="remove-race"]');
+  if (removeRaceBtn) removeRaceBtn.addEventListener('click', () => removeRaceBenefits(removeRaceBtn.dataset.key));
+  const applyClassBtn = main.querySelector('[data-action="apply-class"]');
+  if (applyClassBtn) applyClassBtn.addEventListener('click', () => applyClassBenefits(applyClassBtn.dataset.key));
+
+  // Info de conjuros y elegir del compendio
+  main.querySelectorAll('[data-action="spell-info"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const input = btn.closest('.row-grid-info').querySelector('input');
+      const spell = findSpellByName(input.value);
+      if (!spell) { showToast('Ese conjuro no está en el compendio (es personalizado).'); return; }
+      openSpellInfo(spell);
+    });
+  });
+  const pickCantripBtn = main.querySelector('[data-action="pick-cantrip"]');
+  if (pickCantripBtn) {
+    pickCantripBtn.addEventListener('click', () => {
+      openSpellPicker((spell) => {
+        current.spellcasting.cantrips.push(spell.name);
+        scheduleSave();
+        renderTabMain();
+      });
+    });
+  }
+  const pickSpellBtn = main.querySelector('[data-action="pick-spell"]');
+  if (pickSpellBtn) {
+    pickSpellBtn.addEventListener('click', () => {
+      openSpellPicker((spell) => {
+        current.spellcasting.spells.push({ level: Math.max(1, spell.level), name: spell.name, prepared: false, notes: '' });
+        scheduleSave();
+        renderTabMain();
+      });
     });
   }
 
   // Listas dinámicas: agregar / quitar filas
   main.querySelectorAll('[data-action]').forEach((btn) => {
+    const action = btn.dataset.action;
+    if (['apply-race', 'remove-race', 'apply-class', 'spell-info', 'pick-cantrip', 'pick-spell'].includes(action)) return;
     btn.addEventListener('click', () => {
-      const action = btn.dataset.action;
       const idx = Number(btn.dataset.index);
+      const subIdx = Number(btn.dataset.subindex);
       if (action === 'add-attack') current.attacks.push({ name: '', bonus: '', damage: '', notes: '' });
       if (action === 'remove-attack') current.attacks.splice(idx, 1);
       if (action === 'add-feature') current.features.push({ name: '', desc: '' });
@@ -828,14 +1138,16 @@ function bindSheetEvents() {
         const slot = current.spellcasting.slots[lvl];
         slot.used = idx < slot.used ? idx : idx + 1;
       }
-      if (action === 'add-effect') current.effects.push({ name: '', kind: 'buff', rounds: null, notes: '' });
+      if (action === 'add-effect') current.effects.push(createEffect());
       if (action === 'remove-effect') current.effects.splice(idx, 1);
       if (action === 'tick-effect') {
         const effect = current.effects[idx];
         if (typeof effect.rounds === 'number') effect.rounds = Math.max(0, effect.rounds - 1);
       }
+      if (action === 'add-modifier') current.effects[idx].modifiers.push({ target: 'ac', amount: 0 });
+      if (action === 'remove-modifier') current.effects[idx].modifiers.splice(subIdx, 1);
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
     });
   });
 
@@ -851,7 +1163,7 @@ function bindSheetEvents() {
       current.hpTemp = Math.max(0, (Number(current.hpTemp) || 0) - amount);
       current.hpCurrent = Math.max(0, (Number(current.hpCurrent) || 0) - remainingAfterTemp);
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
     });
   }
   if (applyHealBtn) {
@@ -862,7 +1174,7 @@ function bindSheetEvents() {
       const healed = (Number(current.hpCurrent) || 0) + amount;
       current.hpCurrent = max > 0 ? Math.min(max, healed) : healed;
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
     });
   }
 
@@ -882,7 +1194,7 @@ function bindSheetEvents() {
       current.hitDice.current = Math.min(totalDice, (Number(current.hitDice.current) || 0) + recovered);
       Object.values(current.spellcasting.slots).forEach((slot) => { slot.used = 0; });
       scheduleSave();
-      renderSheetView();
+      renderTabMain();
       showToast('Descanso largo completado.');
     });
   }
