@@ -131,6 +131,19 @@ export const RACES = [
     ],
   },
   {
+    key: 'semielfo_drow', name: 'Semielfo (Ascendencia Drow)',
+    abilityBonuses: { cha: 2 },
+    speed: 9, size: 'Mediano',
+    languages: 'Común, Élfico y un idioma adicional',
+    traits: [
+      { name: 'Aumento de característica adicional', desc: 'Elegí +1 a dos características distintas (además del +2 a Carisma); sumalo manualmente en Características.' },
+      { name: 'Visión en la oscuridad superior', desc: 'Ves con poca luz hasta 36 m como si fuera luz brillante, y en oscuridad como luz tenue.' },
+      { name: 'Sentidos feéricos', desc: 'Ventaja en salvaciones contra ser hechizado; la magia no puede dormirte.' },
+      { name: 'Magia drow', desc: 'Conocés el cantrip Luces Danzantes (Carisma). Al llegar a nivel 3 podés lanzar Fuego Feérico una vez por descanso largo, y a nivel 5, Oscuridad una vez por descanso largo.' },
+      { name: 'Sensibilidad a la luz solar', desc: 'Desventaja en tiradas de ataque y en Percepción basada en la vista cuando vos o el objetivo están bajo luz solar directa.' },
+    ],
+  },
+  {
     key: 'semiorco', name: 'Semiorco',
     abilityBonuses: { str: 2, con: 1 },
     speed: 9, size: 'Mediano',
