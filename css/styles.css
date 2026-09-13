@@ -358,6 +358,13 @@ main {
 
 .add-row-btn { margin-top: 0.6rem; width: 100%; }
 
+.effect-row { border-left: 4px solid var(--card-border); }
+.effect-row.effect-buff { border-left-color: var(--success); }
+.effect-row.effect-debuff { border-left-color: var(--danger); }
+.effect-row.effect-condition { border-left-color: #9b7fd4; }
+.effect-row.effect-other { border-left-color: var(--text-dim); }
+.tick-btn { margin-top: 0.6rem; width: 100%; }
+
 .slots-table { width: 100%; border-collapse: collapse; }
 .slots-table th, .slots-table td { padding: 0.3rem; text-align: center; font-size: 0.85rem; }
 .slots-table th { color: var(--text-dim); font-weight: 500; }

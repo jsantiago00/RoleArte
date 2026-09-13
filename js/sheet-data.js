@@ -131,8 +131,16 @@ export function createDefaultCharacter() {
     equipment: '',
     currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
     notes: '',
+    effects: [], // { name, kind: 'buff'|'debuff'|'condition'|'other', rounds: number|null, notes }
   };
 }
+
+export const EFFECT_KINDS = {
+  buff: 'Buff',
+  debuff: 'Debuff',
+  condition: 'Condición',
+  other: 'Otro',
+};
 
 export function migrateCharacter(char) {
   // Asegura que personajes guardados con versiones anteriores tengan todos los campos.
@@ -153,6 +161,7 @@ export function migrateCharacter(char) {
   };
   merged.attacks = char.attacks || [];
   merged.features = char.features || [];
+  merged.effects = char.effects || [];
   return merged;
 }
 

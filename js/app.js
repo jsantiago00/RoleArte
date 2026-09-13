@@ -1,6 +1,6 @@
 import * as db from './db.js';
 import {
-  ABILITIES, SKILLS, CLASS_OPTIONS, ALIGNMENTS, HIT_DICE_TYPES, CURRENCIES,
+  ABILITIES, SKILLS, CLASS_OPTIONS, ALIGNMENTS, HIT_DICE_TYPES, CURRENCIES, EFFECT_KINDS,
   abilityModifier, formatModifier, proficiencyBonusForLevel,
   createDefaultCharacter, migrateCharacter, getSaveBonus,
   getSkillBonus, getPassivePerception, getInitiative, getSpellSaveDc, getSpellAttackBonus,
@@ -432,6 +432,31 @@ function renderCombatCard(c) {
   `);
 }
 
+function renderEffectsCard(c) {
+  const rows = c.effects.map((e, i) => `
+    <div class="row-card effect-row effect-${e.kind || 'other'}">
+      <button class="remove-btn danger" data-action="remove-effect" data-index="${i}">✕</button>
+      <div class="row-grid">
+        <div class="field"><label>Nombre</label><input type="text" data-path="effects.${i}.name" data-type="text" value="${escapeHtml(e.name)}" placeholder="Ej: Escudo, Envenenado..."></div>
+        <div class="field"><label>Tipo</label>
+          <select data-path="effects.${i}.kind" data-type="text">
+            ${Object.entries(EFFECT_KINDS).map(([k, l]) => `<option value="${k}" ${(e.kind || 'other') === k ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Duración (rondas)</label>
+          <input type="number" min="0" data-path="effects.${i}.rounds" data-type="number" data-allow-null="1" placeholder="Sin límite" value="${typeof e.rounds === 'number' ? e.rounds : ''}">
+        </div>
+      </div>
+      <div class="field" style="margin-top:0.5rem;margin-bottom:0;"><label>Notas</label><input type="text" data-path="effects.${i}.notes" data-type="text" value="${escapeHtml(e.notes)}" placeholder="Ej: +2 CA, desventaja en ataques..."></div>
+      ${typeof e.rounds === 'number' ? `<button class="tick-btn ghost" data-action="tick-effect" data-index="${i}">−1 ronda (quedan ${e.rounds})</button>` : ''}
+    </div>`).join('');
+  return cardWrap('effects', 'Efectos activos', `
+    <p class="hint">Estados, escudos, buffs o debuffs temporales durante el combate.</p>
+    <div class="list-rows">${rows}</div>
+    <button class="add-row-btn" data-action="add-effect">+ Añadir efecto</button>
+  `);
+}
+
 function renderAttacksSpellsCard(c) {
   const attackRows = c.attacks.map((a, i) => `
     <div class="row-card">
@@ -581,6 +606,7 @@ function renderSheetView() {
       ${renderAbilitiesCard(c)}
       ${renderSkillsCard(c)}
       ${renderCombatCard(c)}
+      ${renderEffectsCard(c)}
       ${renderAttacksSpellsCard(c)}
       ${renderFeaturesCard(c)}
       ${renderBackgroundCard(c)}
@@ -801,6 +827,12 @@ function bindSheetEvents() {
         const lvl = Number(btn.dataset.level);
         const slot = current.spellcasting.slots[lvl];
         slot.used = idx < slot.used ? idx : idx + 1;
+      }
+      if (action === 'add-effect') current.effects.push({ name: '', kind: 'buff', rounds: null, notes: '' });
+      if (action === 'remove-effect') current.effects.splice(idx, 1);
+      if (action === 'tick-effect') {
+        const effect = current.effects[idx];
+        if (typeof effect.rounds === 'number') effect.rounds = Math.max(0, effect.rounds - 1);
       }
       scheduleSave();
       renderSheetView();
