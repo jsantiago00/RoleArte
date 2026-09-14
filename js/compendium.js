@@ -302,6 +302,117 @@ export const SUBCLASSES = [
   { key: 'artifice_armero', classKey: 'artifice', category: 'Especialización de Artífice', minLevel: 3, name: 'Armero (Armorer)', desc: 'Construís una armadura potenciada que vestís vos mismo, con un modelo Guardián (más resistente) o Infiltrador (más ágil).' },
 ];
 
+// Trasfondos: al aplicar uno se marca competencia en sus dos habilidades, se agrega su
+// rasgo a "Rasgos y dotes", se suman sus objetos iniciales a "Equipo" y su oro de inicio
+// (esto último SUMA a tus monedas actuales, por eso el botón se puede "quitar" como con
+// las razas). Herramientas/idiomas quedan como nota en Trasfondo.
+export const BACKGROUNDS = [
+  {
+    key: 'acolito', name: 'Acólito',
+    skillProficiencies: ['insight', 'religion'],
+    languagesTools: '2 idiomas a elección',
+    feature: { name: 'Refugio de los Fieles', desc: 'Vos y tus compañeros pueden recibir alojamiento y comida gratis en templos de tu fe, y curación básica sin costo.' },
+    equipment: [{ name: 'Símbolo sagrado', qty: 1, notes: '' }, { name: 'Libro de oraciones', qty: 1, notes: '' }, { name: 'Varitas de incienso', qty: 5, notes: '' }, { name: 'Vestiduras', qty: 1, notes: '' }, { name: 'Ropa común', qty: 1, notes: '' }],
+    startingGold: 15,
+  },
+  {
+    key: 'charlatan', name: 'Charlatán',
+    skillProficiencies: ['deception', 'sleightOfHand'],
+    languagesTools: 'Kit de disfraz, herramientas de falsificación',
+    feature: { name: 'Identidad Falsa', desc: 'Tenés una segunda identidad con documentación falsa y contactos que la respaldan.' },
+    equipment: [{ name: 'Ropa fina', qty: 1, notes: '' }, { name: 'Kit de disfraz', qty: 1, notes: '' }, { name: 'Herramientas de falsificación', qty: 1, notes: '' }],
+    startingGold: 15,
+  },
+  {
+    key: 'criminal', name: 'Criminal',
+    skillProficiencies: ['deception', 'stealth'],
+    languagesTools: 'Un tipo de herramienta de ladrón o juego de azar',
+    feature: { name: 'Contacto Criminal', desc: 'Tenés un contacto de confianza que sirve de enlace con una red de otros criminales.' },
+    equipment: [{ name: 'Ganzúas', qty: 1, notes: '' }, { name: 'Ropa oscura con capucha', qty: 1, notes: '' }],
+    startingGold: 15,
+  },
+  {
+    key: 'artista', name: 'Artista (Entertainer)',
+    skillProficiencies: ['acrobatics', 'performance'],
+    languagesTools: 'Un instrumento musical o kit de disfraz',
+    feature: { name: 'Por Petición Popular', desc: 'Siempre podés encontrar un lugar para actuar, lo que te consigue alojamiento y comida modestos gratis.' },
+    equipment: [{ name: 'Instrumento musical', qty: 1, notes: '' }, { name: 'Prenda de un admirador', qty: 1, notes: '' }],
+    startingGold: 15,
+  },
+  {
+    key: 'heroe_popular', name: 'Héroe del Pueblo',
+    skillProficiencies: ['animalHandling', 'survival'],
+    languagesTools: 'Un tipo de herramienta de artesano, vehículos terrestres',
+    feature: { name: 'Hospitalidad Rústica', desc: 'La gente común te reconoce como uno de los suyos y te ayuda a esconderte o descansar si lo necesitás.' },
+    equipment: [{ name: 'Herramientas de artesano', qty: 1, notes: '' }, { name: 'Pala', qty: 1, notes: '' }, { name: 'Olla de hierro', qty: 1, notes: '' }, { name: 'Ropa común', qty: 1, notes: '' }],
+    startingGold: 10,
+  },
+  {
+    key: 'artesano_gremial', name: 'Artesano Gremial',
+    skillProficiencies: ['insight', 'persuasion'],
+    languagesTools: 'Un idioma, herramientas de artesano de tu gremio',
+    feature: { name: 'Membresía en el Gremio', desc: 'Tu membresía te da hospedaje y apoyo en cualquier ciudad donde tu gremio tenga presencia.' },
+    equipment: [{ name: 'Herramientas de artesano', qty: 1, notes: '' }, { name: 'Carta de presentación del gremio', qty: 1, notes: '' }, { name: 'Ropa de viaje', qty: 1, notes: '' }],
+    startingGold: 15,
+  },
+  {
+    key: 'ermitano', name: 'Ermitaño',
+    skillProficiencies: ['medicine', 'religion'],
+    languagesTools: 'Un idioma, kit de herbolario',
+    feature: { name: 'Descubrimiento', desc: 'Durante tu tiempo aislado descubriste un gran secreto sobre el mundo, algo místico o desconocido para la mayoría.' },
+    equipment: [{ name: 'Kit de herbolario', qty: 1, notes: '' }, { name: 'Ropa de viaje', qty: 1, notes: '' }, { name: 'Cuaderno de notas', qty: 1, notes: '' }],
+    startingGold: 5,
+  },
+  {
+    key: 'noble', name: 'Noble',
+    skillProficiencies: ['insight', 'persuasion'],
+    languagesTools: 'Un idioma, un juego a elección',
+    feature: { name: 'Posición Privilegiada', desc: 'La gente asume que tenés autoridad y permiso para estar donde estás; los sirvientes te atienden con cortesía.' },
+    equipment: [{ name: 'Ropa fina', qty: 1, notes: '' }, { name: 'Anillo de sello', qty: 1, notes: '' }, { name: 'Pergamino de linaje', qty: 1, notes: '' }],
+    startingGold: 25,
+  },
+  {
+    key: 'forastero', name: 'Forastero (Outlander)',
+    skillProficiencies: ['athletics', 'survival'],
+    languagesTools: 'Un idioma, un instrumento musical',
+    feature: { name: 'Guía', desc: 'Recordás la geografía de las tierras que recorriste, y siempre encontrás comida y agua para vos y hasta 5 personas.' },
+    equipment: [{ name: 'Arma de caza', qty: 1, notes: '' }, { name: 'Trofeo de un animal', qty: 1, notes: '' }, { name: 'Ropa de viaje', qty: 1, notes: '' }],
+    startingGold: 10,
+  },
+  {
+    key: 'marino', name: 'Marino',
+    skillProficiencies: ['athletics', 'perception'],
+    languagesTools: 'Vehículos acuáticos',
+    feature: { name: 'Pasaje de Barco', desc: 'Podés viajar gratis en barcos mercantes o de pasajeros a cambio de trabajar durante el viaje.' },
+    equipment: [{ name: 'Cuerda de abordaje', qty: 1, notes: '' }, { name: 'Ropa común', qty: 1, notes: '' }],
+    startingGold: 10,
+  },
+  {
+    key: 'sabio', name: 'Sabio',
+    skillProficiencies: ['arcana', 'history'],
+    languagesTools: '2 idiomas a elección',
+    feature: { name: 'Investigador', desc: 'Cuando no sabés algo, generalmente sabés dónde o con quién averiguarlo.' },
+    equipment: [{ name: 'Pluma de escritor', qty: 1, notes: '' }, { name: 'Frasco de tinta', qty: 1, notes: '' }, { name: 'Ropa común', qty: 1, notes: '' }],
+    startingGold: 10,
+  },
+  {
+    key: 'soldado', name: 'Soldado',
+    skillProficiencies: ['athletics', 'intimidation'],
+    languagesTools: 'Un juego a elección, vehículos terrestres',
+    feature: { name: 'Rango Militar', desc: 'Los soldados de tu bando reconocen tu rango y te tratan con respeto y algo de deferencia.' },
+    equipment: [{ name: 'Insignia de rango', qty: 1, notes: '' }, { name: 'Trofeo de un enemigo caído', qty: 1, notes: '' }, { name: 'Ropa común', qty: 1, notes: '' }],
+    startingGold: 10,
+  },
+  {
+    key: 'golfillo', name: 'Golfillo (Urchin)',
+    skillProficiencies: ['sleightOfHand', 'stealth'],
+    languagesTools: 'Herramientas de ladrón, kit de disfraz',
+    feature: { name: 'Contactos Callejeros', desc: 'Conocés atajos por la ciudad y podés moverte el doble de rápido cuando vas solo (fuera de combate).' },
+    equipment: [{ name: 'Cuchillo pequeño', qty: 1, notes: '' }, { name: 'Mapa de tu ciudad natal', qty: 1, notes: '' }, { name: 'Ropa común', qty: 1, notes: '' }],
+    startingGold: 10,
+  },
+];
+
 // effectPreset: cuando existe, "Aplicar como efecto activo" crea una entrada lista en
 // Efectos activos con esos modificadores. Solo se incluyó donde el efecto es un bono
 // plano y claro; para bonos basados en dados (ej. 1d4) se usa un promedio aproximado,

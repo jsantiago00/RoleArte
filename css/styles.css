@@ -507,6 +507,16 @@ main {
   white-space: nowrap;
 }
 .prepared-badge { color: var(--success); font-weight: 700; flex-shrink: 0; }
+.action-type-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  background: var(--bg);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+}
 .list-item-header .chevron { color: var(--text-dim); transition: transform 0.15s; flex-shrink: 0; }
 .list-item.expanded .list-item-header .chevron { transform: rotate(180deg); }
 .list-item-body { display: none; padding: 0 0.7rem 0.7rem; }
@@ -546,6 +556,16 @@ main {
 .effect-row.effect-debuff { border-left-color: var(--danger); }
 .effect-row.effect-condition { border-left-color: var(--magic); }
 .effect-row.effect-other { border-left-color: var(--text-dim); }
+.effect-row.effect-expired { border-left-color: var(--card-border); opacity: 0.6; }
+.effect-expired-badge {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  display: inline-block;
+  margin-bottom: 0.6rem;
+}
 .tick-btn { margin-top: 0.6rem; width: 100%; }
 
 .slots-table { width: 100%; border-collapse: collapse; }

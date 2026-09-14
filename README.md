@@ -102,6 +102,11 @@ suma su descripción principal a "Rasgos y dotes" (no la progresión completa ni
 Si tu clase/raza/subclase no está en el compendio (por ejemplo, algo homebrew), el campo sigue
 siendo texto libre normal, simplemente no aparece el botón de auto-aplicar.
 
+También hay un compendio de los 13 **trasfondos** del contenido abierto (Acólito, Criminal, Sabio,
+Soldado, etc.). Aplicar uno marca competencia en sus 2 habilidades, agrega su rasgo a "Rasgos y
+dotes", suma sus objetos iniciales a "Equipo" y su oro de partida a tus monedas (con el mismo
+esquema de aplicar/quitar que las razas, ya que sumar oro es acumulativo).
+
 ### Conjuros: compendio, info y efectos automáticos
 
 En la pestaña Conjuros podés escribir el nombre libremente (con autocompletado) o tocar
@@ -116,7 +121,17 @@ modificadores ya cargados.
 En Combate, cada efecto (buff, debuff, condición) puede tener uno o más **modificadores de stat**
 (CA, iniciativa, velocidad, una característica, una salvación, una habilidad, CD/bono de conjuros).
 Mientras el efecto esté en la lista, esos bonos o penalizaciones se suman automáticamente a los
-cálculos de la ficha; al borrar el efecto (o cuando termina su duración en rondas) dejan de aplicarse.
+cálculos de la ficha. Cuando la duración en rondas llega a 0, el efecto se marca como **"⏳
+Terminado"** y sus modificadores dejan de contar solos (queda en la lista hasta que lo saques con
+✕, así podés revisarlo antes de borrarlo).
+
+### Qué ocupa cada ataque y conjuro (Acción / Acción adicional / Reacción)
+
+Cada ataque y cada conjuro tiene un campo **"Ocupa"** (Acción, Acción adicional, Reacción, u Otro
+para los de más de una acción o rituales) que se ve como una etiqueta en la lista y en el selector
+**⚔️ Atacar** — pensado para quienes recién arrancan con D&D y todavía no tienen memorizada la
+economía de acciones del turno. Al elegir un conjuro del compendio, se completa solo a partir de
+su tiempo de lanzamiento.
 
 ## Respaldo de tus personajes
 

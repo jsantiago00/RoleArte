@@ -102,6 +102,7 @@ export function createDefaultCharacter() {
     race: '',
     raceKey: null, // clave de RACES cuyos beneficios ya se aplicaron
     background: '',
+    backgroundKey: null, // clave de BACKGROUNDS cuyos beneficios ya se aplicaron
     alignment: '',
 
     abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
@@ -118,7 +119,7 @@ export function createDefaultCharacter() {
     hitDice: { total: 1, type: 'd8', current: 1 },
     deathSaves: { successes: 0, failures: 0 },
 
-    attacks: [],
+    attacks: [], // { name, bonus, damage, notes, actionType: 'accion'|'accion_adicional'|'reaccion'|'ninguna' }
 
     spellcasting: {
       enabled: false,
@@ -127,7 +128,7 @@ export function createDefaultCharacter() {
       attackBonusOverride: null,
       slots: spellSlots,
       cantrips: [],
-      spells: [], // { level, name, prepared, notes }
+      spells: [], // { level, name, prepared, notes, castingType: 'accion'|'accion_adicional'|'reaccion'|'otro' }
     },
 
     features: [], // { name, desc }
@@ -148,6 +149,30 @@ export const EFFECT_KINDS = {
   other: 'Otro',
 };
 
+// Qué parte de tu turno consume un ataque o conjuro, para que quede claro de un vistazo
+// (muy útil para jugadores nuevos que todavía no tienen memorizada la economía de acciones).
+export const ATTACK_ACTION_TYPES = {
+  accion: 'Acción',
+  accion_adicional: 'Acción adicional',
+  reaccion: 'Reacción',
+  ninguna: 'Ninguna (pasivo)',
+};
+
+export const SPELL_ACTION_TYPES = {
+  accion: 'Acción',
+  accion_adicional: 'Acción adicional',
+  reaccion: 'Reacción',
+  otro: 'Más de 1 acción / ritual',
+};
+
+export function guessSpellActionType(castingTime) {
+  const t = (castingTime || '').toLowerCase();
+  if (t.includes('adicional')) return 'accion_adicional';
+  if (t.includes('reacci')) return 'reaccion';
+  if (t.includes('acción') || t.includes('accion')) return 'accion';
+  return 'otro';
+}
+
 // Objetivos que un modificador de efecto puede afectar mientras el efecto está activo.
 export const EFFECT_TARGETS = [
   { value: 'ac', label: 'Clase de armadura', group: 'Combate' },
@@ -164,8 +189,15 @@ export function createEffect() {
   return { name: '', kind: 'buff', rounds: null, notes: '', modifiers: [] };
 }
 
+// Un efecto con duración en rondas deja de aplicar sus modificadores al llegar a 0;
+// queda en la lista (para que lo veas y lo saques a mano) pero ya no cuenta para las tiradas.
+export function isEffectExpired(effect) {
+  return typeof effect.rounds === 'number' && effect.rounds <= 0;
+}
+
 export function getEffectModifierTotal(character, target) {
   return (character.effects || []).reduce((total, effect) => {
+    if (isEffectExpired(effect)) return total;
     const fromEffect = (effect.modifiers || [])
       .filter((m) => m.target === target)
       .reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
@@ -193,14 +225,15 @@ export function migrateCharacter(char) {
     ...(char.spellcasting || {}),
     slots: { ...base.spellcasting.slots, ...((char.spellcasting || {}).slots || {}) },
     cantrips: (char.spellcasting && char.spellcasting.cantrips) || [],
-    spells: (char.spellcasting && char.spellcasting.spells) || [],
+    spells: ((char.spellcasting && char.spellcasting.spells) || []).map((s) => ({ castingType: 'accion', ...s })),
   };
-  merged.attacks = char.attacks || [];
+  merged.attacks = (char.attacks || []).map((a) => ({ actionType: 'accion', ...a }));
   merged.features = char.features || [];
   merged.items = char.items || [];
   merged.effects = (char.effects || []).map((e) => ({ ...createEffect(), ...e, modifiers: e.modifiers || [] }));
   merged.raceKey = char.raceKey || null;
   merged.classKey = char.classKey || null;
+  merged.backgroundKey = char.backgroundKey || null;
   merged.subclassKey = char.subclassKey || null;
   return merged;
 }

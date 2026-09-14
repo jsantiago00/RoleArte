@@ -1,14 +1,14 @@
 import * as db from './db.js';
 import {
   ABILITIES, SKILLS, CLASS_OPTIONS, ALIGNMENTS, HIT_DICE_TYPES, CURRENCIES,
-  EFFECT_KINDS, EFFECT_TARGETS,
-  abilityModifier, formatModifier, proficiencyBonusForLevel,
-  createDefaultCharacter, migrateCharacter, createEffect,
+  EFFECT_KINDS, EFFECT_TARGETS, ATTACK_ACTION_TYPES, SPELL_ACTION_TYPES,
+  abilityModifier, formatModifier, proficiencyBonusForLevel, guessSpellActionType,
+  createDefaultCharacter, migrateCharacter, createEffect, isEffectExpired,
   getSaveBonus, getSkillBonus, getPassivePerception, getInitiative, getSpellSaveDc,
   getSpellAttackBonus, getArmorClass, getSpeed, getEffectiveAbilityModifier, getEffectModifierTotal,
   uid,
 } from './sheet-data.js';
-import { RACES, CLASSES, SUBCLASSES, SPELLS } from './compendium.js';
+import { RACES, CLASSES, SUBCLASSES, SPELLS, BACKGROUNDS } from './compendium.js';
 import {
   onAuthChange, getCurrentUser, signUp, signIn, signOutUser, isCloudAvailable,
 } from './auth.js';
@@ -469,6 +469,14 @@ function renderHeaderCard(c) {
   const subclassActionHtml = matchedSubclass
     ? `<button type="button" class="ghost apply-btn" data-action="apply-subclass" data-key="${matchedSubclass.key}">✨ Agregar rasgos de ${escapeHtml(matchedSubclass.name)}</button>`
     : '';
+  const appliedBackground = c.backgroundKey ? BACKGROUNDS.find((b) => b.key === c.backgroundKey) : null;
+  const matchedBackground = !appliedBackground ? BACKGROUNDS.find((b) => b.name.toLowerCase() === (c.background || '').trim().toLowerCase()) : null;
+  let backgroundActionHtml = '';
+  if (appliedBackground) {
+    backgroundActionHtml = `<button type="button" class="ghost apply-btn" data-action="remove-background" data-key="${appliedBackground.key}">↩️ Quitar beneficios de ${escapeHtml(appliedBackground.name)}</button>`;
+  } else if (matchedBackground) {
+    backgroundActionHtml = `<button type="button" class="ghost apply-btn" data-action="apply-background" data-key="${matchedBackground.key}">✨ Aplicar beneficios de ${escapeHtml(matchedBackground.name)}</button>`;
+  }
 
   return cardWrap('header', 'Personaje', `
     <div class="portrait-upload">
@@ -494,10 +502,12 @@ function renderHeaderCard(c) {
     <datalist id="subclass-options">${subclassOptions.map((s) => `<option value="${s.name}">`).join('')}</datalist>
     <div class="field-row">
       <div class="field"><label>Raza / linaje</label><input type="text" list="race-options" data-path="race" data-type="text" data-derive-trigger="1" value="${escapeHtml(c.race)}"></div>
-      <div class="field"><label>Trasfondo</label><input type="text" data-path="background" data-type="text" value="${escapeHtml(c.background)}"></div>
+      <div class="field"><label>Trasfondo</label><input type="text" list="background-options" data-path="background" data-type="text" data-derive-trigger="1" value="${escapeHtml(c.background)}"></div>
     </div>
     ${raceActionHtml ? `<p class="hint" style="margin-top:-0.4rem;">${raceActionHtml}</p>` : ''}
+    ${backgroundActionHtml ? `<p class="hint" style="margin-top:${raceActionHtml ? '0' : '-0.4rem'};">${backgroundActionHtml}</p>` : ''}
     <datalist id="race-options">${RACES.map((r) => `<option value="${r.name}">`).join('')}</datalist>
+    <datalist id="background-options">${BACKGROUNDS.map((b) => `<option value="${b.name}">`).join('')}</datalist>
     <div class="field-row">
       <div class="field">
         <label>Alineamiento</label>
@@ -667,9 +677,11 @@ function renderEffectsCard(c) {
         <input type="number" data-path="effects.${i}.modifiers.${mi}.amount" data-type="number" value="${m.amount}" placeholder="+/-">
         <button type="button" class="icon-btn danger" data-action="remove-modifier" data-index="${i}" data-subindex="${mi}">✕</button>
       </div>`).join('');
+    const expired = isEffectExpired(e);
     return `
-    <div class="row-card effect-row effect-${e.kind || 'other'}">
+    <div class="row-card effect-row effect-${e.kind || 'other'}${expired ? ' effect-expired' : ''}">
       <button class="remove-btn danger" data-action="remove-effect" data-index="${i}">✕</button>
+      ${expired ? '<div class="effect-expired-badge">⏳ Terminado — ya no afecta tus stats</div>' : ''}
       <div class="row-grid">
         <div class="field"><label>Nombre</label><input type="text" data-path="effects.${i}.name" data-type="text" value="${escapeHtml(e.name)}" placeholder="Ej: Escudo, Envenenado..."></div>
         <div class="field"><label>Tipo</label>
@@ -685,11 +697,11 @@ function renderEffectsCard(c) {
       <label>Modifica mientras esté activo</label>
       <div class="modifiers-list">${modifiersHtml}</div>
       <button type="button" class="ghost add-row-btn" data-action="add-modifier" data-index="${i}">+ Modificador de stat</button>
-      ${typeof e.rounds === 'number' ? `<button class="tick-btn ghost" data-action="tick-effect" data-index="${i}">−1 ronda (quedan ${e.rounds})</button>` : ''}
+      ${typeof e.rounds === 'number' && !expired ? `<button class="tick-btn ghost" data-action="tick-effect" data-index="${i}">−1 ronda (quedan ${e.rounds})</button>` : ''}
     </div>`;
   }).join('');
   return cardWrap('effects', 'Efectos activos', `
-    <p class="hint">Estados, escudos, buffs o debuffs temporales durante el combate. Los modificadores de stat se suman automáticamente a las tiradas mientras el efecto siga acá.</p>
+    <p class="hint">Estados, escudos, buffs o debuffs temporales durante el combate. Los modificadores de stat se suman automáticamente a las tiradas mientras el efecto siga acá; al llegar a 0 rondas dejan de aplicarse solos (sacalo con ✕ cuando quieras).</p>
     <div class="list-rows">${rows}</div>
     <button class="add-row-btn" data-action="add-effect">+ Añadir efecto</button>
   `);
@@ -703,6 +715,13 @@ function renderAttacksSpellsCard(c) {
         <div class="field"><label>Nombre</label><input type="text" data-path="attacks.${i}.name" data-type="text" value="${escapeHtml(a.name)}"></div>
         <div class="field"><label>Bono ataque</label><input type="text" data-path="attacks.${i}.bonus" data-type="text" value="${escapeHtml(a.bonus)}"></div>
         <div class="field"><label>Daño / Tipo</label><input type="text" data-path="attacks.${i}.damage" data-type="text" value="${escapeHtml(a.damage)}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Ocupa</label>
+          <select data-path="attacks.${i}.actionType" data-type="text">
+            ${Object.entries(ATTACK_ACTION_TYPES).map(([k, l]) => `<option value="${k}" ${(a.actionType || 'accion') === k ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+        </div>
         <div class="field"><label>Notas</label><input type="text" data-path="attacks.${i}.notes" data-type="text" value="${escapeHtml(a.notes)}"></div>
       </div>
     </div>`).join('');
@@ -729,6 +748,7 @@ function renderAttacksSpellsCard(c) {
         <div class="list-item-header" data-toggle-spell="${i}">
           <span class="list-item-badge list-item-badge-magic">${sp.level}</span>
           <span class="list-item-name">${escapeHtml(sp.name) || 'Nuevo conjuro'}</span>
+          <span class="action-type-badge">${SPELL_ACTION_TYPES[sp.castingType || 'accion']}</span>
           ${sp.prepared ? '<span class="prepared-badge" title="Preparado">✓</span>' : ''}
           <span class="chevron">▾</span>
         </div>
@@ -741,6 +761,11 @@ function renderAttacksSpellsCard(c) {
                 <button type="button" class="icon-btn ghost" data-action="spell-info">ℹ️</button>
               </div>
             </div>
+          </div>
+          <div class="field" style="margin-top:0.5rem;"><label>Ocupa</label>
+            <select data-path="spellcasting.spells.${i}.castingType" data-type="text">
+              ${Object.entries(SPELL_ACTION_TYPES).map(([k, l]) => `<option value="${k}" ${(sp.castingType || 'accion') === k ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
           </div>
           <div class="field" style="margin-top:0.5rem;margin-bottom:0;"><label>Notas</label><input type="text" data-path="spellcasting.spells.${i}.notes" data-type="text" value="${escapeHtml(sp.notes)}"></div>
           <div class="checkbox-line" style="margin-top:0.5rem;">
@@ -1147,6 +1172,56 @@ async function applySubclassBenefits(subclassKey) {
   showToast(`Rasgos de ${sub.name} agregados.`);
 }
 
+async function applyBackgroundBenefits(backgroundKey) {
+  const bg = BACKGROUNDS.find((b) => b.key === backgroundKey);
+  if (!bg) return;
+  const skillNames = bg.skillProficiencies.map((k) => SKILLS.find((s) => s.key === k).label).join(' y ');
+  const itemNames = bg.equipment.map((it) => `${it.qty > 1 ? `${it.qty}x ` : ''}${it.name}`).join(', ');
+  const ok = await showConfirm({
+    title: `Aplicar beneficios de ${bg.name}`,
+    message: `Esto marca competencia en ${skillNames}, agrega su rasgo a "Rasgos y dotes", suma estos objetos a "Equipo" (${itemNames}) y suma ${bg.startingGold} po a tus monedas. ¿Continuar?`,
+    confirmLabel: 'Aplicar',
+  });
+  if (!ok) return;
+  bg.skillProficiencies.forEach((k) => {
+    if (current.skillProficiencies[k] === 'none') current.skillProficiencies[k] = 'prof';
+  });
+  if (!current.features.some((f) => f.name === bg.feature.name)) {
+    current.features.push({ name: bg.feature.name, desc: bg.feature.desc });
+  }
+  bg.equipment.forEach((it) => {
+    if (!current.items.some((existing) => existing.name === it.name)) {
+      current.items.push({ ...it });
+    }
+  });
+  current.currency.gp = (Number(current.currency.gp) || 0) + bg.startingGold;
+  const note = `Trasfondo (${bg.name}): ${bg.languagesTools}`;
+  if (!current.proficienciesLanguages.includes(note)) {
+    current.proficienciesLanguages = current.proficienciesLanguages ? `${current.proficienciesLanguages}\n${note}` : note;
+  }
+  current.backgroundKey = bg.key;
+  scheduleSave();
+  renderSheetView();
+  showToast(`Beneficios de ${bg.name} aplicados.`);
+}
+
+async function removeBackgroundBenefits(backgroundKey) {
+  const bg = BACKGROUNDS.find((b) => b.key === backgroundKey);
+  if (!bg) return;
+  const ok = await showConfirm({
+    title: `Quitar beneficios de ${bg.name}`,
+    message: `Esto resta los ${bg.startingGold} po que sumó este trasfondo. Las competencias, el rasgo y los objetos agregados hay que sacarlos a mano si ya no los querés.`,
+    confirmLabel: 'Quitar',
+    danger: true,
+  });
+  if (!ok) return;
+  current.currency.gp = (Number(current.currency.gp) || 0) - bg.startingGold;
+  current.backgroundKey = null;
+  scheduleSave();
+  renderSheetView();
+  showToast('Beneficios de trasfondo removidos.');
+}
+
 function spellDetailHtml(spell) {
   return `
     <p class="hint" style="margin-top:0;">${spell.level === 0 ? 'Truco' : `Nivel ${spell.level}`} · ${escapeHtml(spell.school)}${spell.concentration ? ' · Concentración' : ''}${spell.ritual ? ' · Ritual' : ''}</p>
@@ -1243,23 +1318,27 @@ function openAttackPicker() {
         <button type="button" class="attack-pick-row" data-pick-weapon="${i}">
           <span class="attack-pick-icon">🗡️</span>
           <span class="attack-pick-name">${escapeHtml(a.name) || 'Arma sin nombre'}</span>
-          <span class="attack-pick-sub">${escapeHtml(a.bonus) || '—'}</span>
+          <span class="attack-pick-sub">${ATTACK_ACTION_TYPES[a.actionType || 'accion']} · ${escapeHtml(a.bonus) || '—'}</span>
         </button>`).join('')
       : '<p class="hint">No cargaste armas (pestaña Conjuros → Ataques).</p>';
     const cantripsHtml = cantrips.length
-      ? cantrips.map((name, i) => `
+      ? cantrips.map((name, i) => {
+        const spell = findSpellByName(name);
+        const sub = spell ? SPELL_ACTION_TYPES[guessSpellActionType(spell.castingTime)] : 'Truco';
+        return `
         <button type="button" class="attack-pick-row" data-pick-cantrip="${i}">
           <span class="attack-pick-icon">✨</span>
           <span class="attack-pick-name">${escapeHtml(name)}</span>
-          <span class="attack-pick-sub">Truco</span>
-        </button>`).join('')
+          <span class="attack-pick-sub">${sub}</span>
+        </button>`;
+      }).join('')
       : '<p class="hint">No tenés trucos cargados.</p>';
     const spellsHtml = availableSpells.length
       ? availableSpells.map((sp) => `
         <button type="button" class="attack-pick-row" data-pick-spell="${c.spellcasting.spells.indexOf(sp)}">
           <span class="attack-pick-icon">🔮</span>
           <span class="attack-pick-name">${escapeHtml(sp.name) || 'Conjuro'}</span>
-          <span class="attack-pick-sub">Nivel ${sp.level}</span>
+          <span class="attack-pick-sub">${SPELL_ACTION_TYPES[sp.castingType || 'accion']} · Nivel ${sp.level}</span>
         </button>`).join('')
       : `<p class="hint">${c.spellcasting.enabled ? 'No tenés conjuros con espacios disponibles ahora.' : 'Este personaje no tiene lanzamiento de conjuros activado.'}</p>`;
     return `
@@ -1464,6 +1543,10 @@ function bindSheetEvents() {
   if (applyClassBtn) applyClassBtn.addEventListener('click', () => applyClassBenefits(applyClassBtn.dataset.key));
   const applySubclassBtn = main.querySelector('[data-action="apply-subclass"]');
   if (applySubclassBtn) applySubclassBtn.addEventListener('click', () => applySubclassBenefits(applySubclassBtn.dataset.key));
+  const applyBackgroundBtn = main.querySelector('[data-action="apply-background"]');
+  if (applyBackgroundBtn) applyBackgroundBtn.addEventListener('click', () => applyBackgroundBenefits(applyBackgroundBtn.dataset.key));
+  const removeBackgroundBtn = main.querySelector('[data-action="remove-background"]');
+  if (removeBackgroundBtn) removeBackgroundBtn.addEventListener('click', () => removeBackgroundBenefits(removeBackgroundBtn.dataset.key));
 
   // Info de conjuros y elegir del compendio
   main.querySelectorAll('[data-action="spell-info"]').forEach((btn) => {
@@ -1488,7 +1571,10 @@ function bindSheetEvents() {
   if (pickSpellBtn) {
     pickSpellBtn.addEventListener('click', () => {
       openSpellPicker((spell) => {
-        current.spellcasting.spells.push({ level: Math.max(1, spell.level), name: spell.name, prepared: false, notes: '' });
+        current.spellcasting.spells.push({
+          level: Math.max(1, spell.level), name: spell.name, prepared: false, notes: '',
+          castingType: guessSpellActionType(spell.castingTime),
+        });
         expandedSpells.add(String(current.spellcasting.spells.length - 1));
         scheduleSave();
         renderTabMain();
@@ -1517,18 +1603,18 @@ function bindSheetEvents() {
   // Listas dinámicas: agregar / quitar filas
   main.querySelectorAll('[data-action]').forEach((btn) => {
     const action = btn.dataset.action;
-    if (['apply-race', 'remove-race', 'apply-class', 'apply-subclass', 'spell-info', 'pick-cantrip', 'pick-spell'].includes(action)) return;
+    if (['apply-race', 'remove-race', 'apply-class', 'apply-subclass', 'apply-background', 'remove-background', 'spell-info', 'pick-cantrip', 'pick-spell'].includes(action)) return;
     btn.addEventListener('click', () => {
       const idx = Number(btn.dataset.index);
       const subIdx = Number(btn.dataset.subindex);
-      if (action === 'add-attack') current.attacks.push({ name: '', bonus: '', damage: '', notes: '' });
+      if (action === 'add-attack') current.attacks.push({ name: '', bonus: '', damage: '', notes: '', actionType: 'accion' });
       if (action === 'remove-attack') current.attacks.splice(idx, 1);
       if (action === 'add-feature') current.features.push({ name: '', desc: '' });
       if (action === 'remove-feature') current.features.splice(idx, 1);
       if (action === 'add-cantrip') current.spellcasting.cantrips.push('');
       if (action === 'remove-cantrip') current.spellcasting.cantrips.splice(idx, 1);
       if (action === 'add-spell') {
-        current.spellcasting.spells.push({ level: 1, name: '', prepared: false, notes: '' });
+        current.spellcasting.spells.push({ level: 1, name: '', prepared: false, notes: '', castingType: 'accion' });
         expandedSpells.add(String(current.spellcasting.spells.length - 1));
       }
       if (action === 'remove-spell') { current.spellcasting.spells.splice(idx, 1); expandedSpells.clear(); }
