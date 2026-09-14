@@ -8,7 +8,7 @@ export const RACES = [
   {
     key: 'humano', name: 'Humano',
     abilityBonuses: { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
-    speed: 9, size: 'Mediano',
+    speed: 30, size: 'Mediano',
     languages: 'Común y un idioma adicional a elección',
     traits: [
       { name: 'Adaptable', desc: 'Un idioma y competencias adicionales según la variante que uses en tu mesa.' },
@@ -17,7 +17,7 @@ export const RACES = [
   {
     key: 'elfo_alto', name: 'Elfo (Alto)',
     abilityBonuses: { dex: 2, int: 1 },
-    speed: 9, size: 'Mediano',
+    speed: 30, size: 'Mediano',
     languages: 'Común, Élfico y un idioma adicional',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue (sin distinguir color).' },
@@ -29,7 +29,7 @@ export const RACES = [
   {
     key: 'elfo_bosque', name: 'Elfo (del Bosque)',
     abilityBonuses: { dex: 2, wis: 1 },
-    speed: 10.5, size: 'Mediano',
+    speed: 35, size: 'Mediano',
     languages: 'Común, Élfico',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue.' },
@@ -41,7 +41,7 @@ export const RACES = [
   {
     key: 'enano_colinas', name: 'Enano (de las Colinas)',
     abilityBonuses: { con: 2, wis: 1 },
-    speed: 7.5, size: 'Mediano',
+    speed: 25, size: 'Mediano',
     languages: 'Común, Enano',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue.' },
@@ -53,7 +53,7 @@ export const RACES = [
   {
     key: 'enano_montanas', name: 'Enano (de las Montañas)',
     abilityBonuses: { str: 2, con: 2 },
-    speed: 7.5, size: 'Mediano',
+    speed: 25, size: 'Mediano',
     languages: 'Común, Enano',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue.' },
@@ -64,7 +64,7 @@ export const RACES = [
   {
     key: 'mediano_pies_ligeros', name: 'Mediano (Pies Ligeros)',
     abilityBonuses: { dex: 2, cha: 1 },
-    speed: 7.5, size: 'Pequeño',
+    speed: 25, size: 'Pequeño',
     languages: 'Común, Mediano',
     traits: [
       { name: 'Valentía', desc: 'Ventaja en salvaciones contra estar asustado.' },
@@ -75,7 +75,7 @@ export const RACES = [
   {
     key: 'mediano_robusto', name: 'Mediano (Robusto)',
     abilityBonuses: { dex: 2, con: 1 },
-    speed: 7.5, size: 'Pequeño',
+    speed: 25, size: 'Pequeño',
     languages: 'Común, Mediano',
     traits: [
       { name: 'Valentía', desc: 'Ventaja en salvaciones contra estar asustado.' },
@@ -86,7 +86,7 @@ export const RACES = [
   {
     key: 'draconido', name: 'Dracónido',
     abilityBonuses: { str: 2, cha: 1 },
-    speed: 9, size: 'Mediano',
+    speed: 30, size: 'Mediano',
     languages: 'Común, Dracónico',
     traits: [
       { name: 'Ascendencia dracónica', desc: 'Elegís un tipo de dragón: define el tipo de daño de tu arma de aliento y tu resistencia a ese daño.' },
@@ -97,7 +97,7 @@ export const RACES = [
   {
     key: 'gnomo_rocas', name: 'Gnomo (de las Rocas)',
     abilityBonuses: { int: 2, con: 1 },
-    speed: 7.5, size: 'Pequeño',
+    speed: 25, size: 'Pequeño',
     languages: 'Común, Gnómico',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue.' },
@@ -109,7 +109,7 @@ export const RACES = [
   {
     key: 'gnomo_bosque', name: 'Gnomo (del Bosque)',
     abilityBonuses: { int: 2, dex: 1 },
-    speed: 7.5, size: 'Pequeño',
+    speed: 25, size: 'Pequeño',
     languages: 'Común, Gnómico',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue.' },
@@ -121,7 +121,7 @@ export const RACES = [
   {
     key: 'semielfo', name: 'Semielfo',
     abilityBonuses: { cha: 2 },
-    speed: 9, size: 'Mediano',
+    speed: 30, size: 'Mediano',
     languages: 'Común, Élfico y un idioma adicional',
     traits: [
       { name: 'Aumento de característica adicional', desc: 'Elegí +1 a dos características distintas (además del +2 a Carisma); sumalo manualmente en Características.' },
@@ -133,7 +133,7 @@ export const RACES = [
   {
     key: 'semielfo_drow', name: 'Semielfo (Ascendencia Drow)',
     abilityBonuses: { cha: 2 },
-    speed: 9, size: 'Mediano',
+    speed: 30, size: 'Mediano',
     languages: 'Común, Élfico y un idioma adicional',
     traits: [
       { name: 'Aumento de característica adicional', desc: 'Elegí +1 a dos características distintas (además del +2 a Carisma); sumalo manualmente en Características.' },
@@ -146,7 +146,7 @@ export const RACES = [
   {
     key: 'semiorco', name: 'Semiorco',
     abilityBonuses: { str: 2, con: 1 },
-    speed: 9, size: 'Mediano',
+    speed: 30, size: 'Mediano',
     languages: 'Común, Orco',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue.' },
@@ -158,7 +158,7 @@ export const RACES = [
   {
     key: 'tiflin', name: 'Tiflin',
     abilityBonuses: { cha: 2, int: 1 },
-    speed: 9, size: 'Mediano',
+    speed: 30, size: 'Mediano',
     languages: 'Común, Infernal',
     traits: [
       { name: 'Visión en la oscuridad', desc: 'Ves con poca luz hasta 18 m como si fuera luz brillante, y en oscuridad como luz tenue.' },

@@ -459,8 +459,8 @@ function renderCombatCard(c) {
         <div class="computed" data-derived="initiative">${formatModifier(getInitiative(c))}</div>
       </div>
       <div class="stat-box"><label>Bono iniciativa (extra)</label><input type="number" data-path="initiativeMisc" data-type="number" value="${c.initiativeMisc}"></div>
-      <div class="stat-box"><label>Velocidad base</label><input type="number" data-path="speed" data-type="number" value="${c.speed}"></div>
-      <div class="stat-box"><label>Velocidad total</label>
+      <div class="stat-box"><label>Velocidad base (pies)</label><input type="number" data-path="speed" data-type="number" value="${c.speed}"></div>
+      <div class="stat-box"><label>Velocidad total (pies)</label>
         <div class="computed" data-derived="speed">${getSpeed(c)}</div>
       </div>
     </div>

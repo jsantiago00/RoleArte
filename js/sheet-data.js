@@ -9,25 +9,27 @@ export const ABILITIES = [
   { key: 'cha', label: 'Carisma' },
 ];
 
+// Ordenadas por característica (Fuerza, Destreza, Constitución, Inteligencia, Sabiduría,
+// Carisma) para que se vean agrupadas en la ficha, en vez de alfabéticas.
 export const SKILLS = [
-  { key: 'acrobatics', label: 'Acrobacias', ability: 'dex' },
-  { key: 'animalHandling', label: 'Trato con animales', ability: 'wis' },
-  { key: 'arcana', label: 'Arcanos', ability: 'int' },
   { key: 'athletics', label: 'Atletismo', ability: 'str' },
-  { key: 'deception', label: 'Engaño', ability: 'cha' },
-  { key: 'history', label: 'Historia', ability: 'int' },
-  { key: 'insight', label: 'Perspicacia', ability: 'wis' },
-  { key: 'intimidation', label: 'Intimidación', ability: 'cha' },
-  { key: 'investigation', label: 'Investigación', ability: 'int' },
-  { key: 'medicine', label: 'Medicina', ability: 'wis' },
-  { key: 'nature', label: 'Naturaleza', ability: 'int' },
-  { key: 'perception', label: 'Percepción', ability: 'wis' },
-  { key: 'performance', label: 'Interpretación', ability: 'cha' },
-  { key: 'persuasion', label: 'Persuasión', ability: 'cha' },
-  { key: 'religion', label: 'Religión', ability: 'int' },
+  { key: 'acrobatics', label: 'Acrobacias', ability: 'dex' },
   { key: 'sleightOfHand', label: 'Juego de manos', ability: 'dex' },
   { key: 'stealth', label: 'Sigilo', ability: 'dex' },
+  { key: 'arcana', label: 'Arcanos', ability: 'int' },
+  { key: 'history', label: 'Historia', ability: 'int' },
+  { key: 'investigation', label: 'Investigación', ability: 'int' },
+  { key: 'nature', label: 'Naturaleza', ability: 'int' },
+  { key: 'religion', label: 'Religión', ability: 'int' },
+  { key: 'animalHandling', label: 'Trato con animales', ability: 'wis' },
+  { key: 'insight', label: 'Perspicacia', ability: 'wis' },
+  { key: 'medicine', label: 'Medicina', ability: 'wis' },
+  { key: 'perception', label: 'Percepción', ability: 'wis' },
   { key: 'survival', label: 'Supervivencia', ability: 'wis' },
+  { key: 'deception', label: 'Engaño', ability: 'cha' },
+  { key: 'intimidation', label: 'Intimidación', ability: 'cha' },
+  { key: 'performance', label: 'Interpretación', ability: 'cha' },
+  { key: 'persuasion', label: 'Persuasión', ability: 'cha' },
 ];
 
 export const CLASS_OPTIONS = [
@@ -109,7 +111,7 @@ export function createDefaultCharacter() {
 
     ac: 10,
     initiativeMisc: 0,
-    speed: 9,
+    speed: 30,
     hpMax: 0,
     hpCurrent: 0,
     hpTemp: 0,
