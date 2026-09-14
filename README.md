@@ -74,6 +74,14 @@ tener que scrollear una pantalla gigante. Cada pestaña guarda sus tarjetas cola
 - El Equipo ahora tiene una lista de **objetos** individuales (cantidad, nombre, notas) además de
   las monedas; el cuadro de texto libre quedó como "Otras notas" para lo que no quieras itemizar.
 
+### Botón "⚔️ Atacar"
+
+En Combate, el botón **⚔️ Atacar** abre un selector con tus armas, tus trucos y los conjuros que
+tenés **con al menos un espacio disponible** (contando espacios de nivel superior para potenciar).
+Elegir un arma o truco muestra su información; elegir un conjuro te deja elegir con qué nivel de
+espacio lanzarlo y lo gasta automáticamente al confirmar. Si el conjuro tiene un efecto cargado en
+el compendio (como Escudo), también podés aplicarlo directo como efecto activo desde ahí.
+
 ### Razas y clases con beneficios automáticos
 
 Al escribir una Clase o Raza que coincida con las del compendio (basado en el contenido abierto/SRD

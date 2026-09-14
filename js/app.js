@@ -19,13 +19,18 @@ let saveTimer = null;
 let activeTab = 'personaje';
 
 const TABS = [
-  { id: 'personaje', label: 'Personaje' },
-  { id: 'combate', label: 'Combate' },
-  { id: 'conjuros', label: 'Conjuros' },
-  { id: 'rasgos', label: 'Rasgos' },
-  { id: 'equipo', label: 'Equipo' },
-  { id: 'notas', label: 'Notas' },
+  { id: 'personaje', label: 'Personaje', icon: '🧙' },
+  { id: 'combate', label: 'Combate', icon: '❤️' },
+  { id: 'conjuros', label: 'Conjuros', icon: '✨' },
+  { id: 'rasgos', label: 'Rasgos', icon: '📜' },
+  { id: 'equipo', label: 'Equipo', icon: '🎒' },
+  { id: 'notas', label: 'Notas', icon: '📝' },
 ];
+
+const CARD_ICONS = {
+  header: '🧙', abilities: '💪', skills: '🎯', combat: '❤️', effects: '🔮',
+  attacks: '⚔️', features: '📜', background: '📖', equipment: '🎒', notes: '📝',
+};
 
 // ---------- Utilidades ----------
 function escapeHtml(str) {
@@ -331,10 +336,11 @@ function toggleListMenu(characters) {
 // ---------- Vista: ficha de personaje ----------
 function cardWrap(id, title, bodyHtml) {
   const isCollapsed = collapsedCards.has(id);
+  const icon = CARD_ICONS[id] || '';
   return `
     <section class="card${isCollapsed ? ' collapsed' : ''}" data-card="${id}">
       <div class="card-header" data-toggle="${id}">
-        <h2>${title}</h2>
+        <h2>${icon ? `<span class="card-icon">${icon}</span>` : ''}${title}</h2>
         <span class="chevron">▾</span>
       </div>
       <div class="card-body">${bodyHtml}</div>
@@ -508,6 +514,7 @@ function renderCombatCard(c) {
       </div>
     </div>
     <label>Combate rápido</label>
+    <button id="open-attack-picker" class="primary attack-btn">⚔️ Atacar</button>
     <div class="dmg-heal-row">
       <input type="number" id="dmg-amount" min="0" placeholder="Cantidad">
       <button id="apply-damage" class="danger">🗡️ Recibir daño</button>
@@ -619,7 +626,7 @@ function renderAttacksSpellsCard(c) {
       return `
       <div class="list-item${expanded ? ' expanded' : ''}">
         <div class="list-item-header" data-toggle-spell="${i}">
-          <span class="list-item-badge">${sp.level}</span>
+          <span class="list-item-badge list-item-badge-magic">${sp.level}</span>
           <span class="list-item-name">${escapeHtml(sp.name) || 'Nuevo conjuro'}</span>
           ${sp.prepared ? '<span class="prepared-badge" title="Preparado">✓</span>' : ''}
           <span class="chevron">▾</span>
@@ -792,7 +799,7 @@ function renderSheetView() {
       </div>
     </header>
     <nav class="tabbar">
-      ${TABS.map((t) => `<button type="button" class="tab-btn ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
+      ${TABS.map((t) => `<button type="button" class="tab-btn ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}"><span>${t.icon}</span>${t.label}</button>`).join('')}
     </nav>
     <main id="sheet-main">
       ${tabContentHtml(activeTab, c)}
@@ -1052,24 +1059,12 @@ function spellDetailHtml(spell) {
 
 function openSpellInfo(spell) {
   const { backdrop, close } = showModal(spell.name, spellDetailHtml(spell));
-  const applyBtn = backdrop.querySelector('#apply-spell-effect');
-  if (applyBtn) {
-    applyBtn.addEventListener('click', () => {
-      current.effects.push({
-        ...createEffect(),
-        name: spell.name,
-        kind: spell.effectPreset.kind,
-        rounds: spell.effectPreset.rounds,
-        notes: `Conjuro: ${spell.name}`,
-        modifiers: spell.effectPreset.modifiers.map((m) => ({ ...m })),
-      });
-      scheduleSave();
-      close();
-      activeTab = 'combate';
-      renderSheetView();
-      showToast('Efecto añadido en la pestaña Combate.');
-    });
-  }
+  bindEffectApplyButton(backdrop, spell, () => {
+    close();
+    activeTab = 'combate';
+    renderSheetView();
+    showToast('Efecto añadido en la pestaña Combate.');
+  });
 }
 
 function openSpellPicker(onPick) {
@@ -1106,6 +1101,154 @@ function findSpellByName(name) {
   const n = (name || '').trim().toLowerCase();
   if (!n) return null;
   return SPELLS.find((s) => s.name.toLowerCase() === n) || null;
+}
+
+function getAvailableSlotLevels(character, minLevel) {
+  return Object.entries(character.spellcasting.slots)
+    .map(([lvl, slot]) => ({ level: Number(lvl), slot }))
+    .filter(({ level, slot }) => level >= minLevel && (Number(slot.max) || 0) > (Number(slot.used) || 0))
+    .sort((a, b) => a.level - b.level)
+    .map((x) => x.level);
+}
+
+function bindEffectApplyButton(backdrop, spell, onDone) {
+  const applyBtn = backdrop.querySelector('#apply-spell-effect');
+  if (!applyBtn) return;
+  applyBtn.addEventListener('click', () => {
+    current.effects.push({
+      ...createEffect(),
+      name: spell.name,
+      kind: spell.effectPreset.kind,
+      rounds: spell.effectPreset.rounds,
+      notes: `Conjuro: ${spell.name}`,
+      modifiers: spell.effectPreset.modifiers.map((m) => ({ ...m })),
+    });
+    scheduleSave();
+    onDone();
+  });
+}
+
+function openAttackPicker() {
+  const c = current;
+  const weapons = c.attacks;
+  const cantrips = c.spellcasting.enabled ? c.spellcasting.cantrips.filter((n) => n && n.trim()) : [];
+  const availableSpells = c.spellcasting.enabled
+    ? c.spellcasting.spells.filter((sp) => getAvailableSlotLevels(c, Number(sp.level) || 1).length > 0)
+    : [];
+
+  function listHtml() {
+    const weaponsHtml = weapons.length
+      ? weapons.map((a, i) => `
+        <button type="button" class="attack-pick-row" data-pick-weapon="${i}">
+          <span class="attack-pick-icon">🗡️</span>
+          <span class="attack-pick-name">${escapeHtml(a.name) || 'Arma sin nombre'}</span>
+          <span class="attack-pick-sub">${escapeHtml(a.bonus) || '—'}</span>
+        </button>`).join('')
+      : '<p class="hint">No cargaste armas (pestaña Conjuros → Ataques).</p>';
+    const cantripsHtml = cantrips.length
+      ? cantrips.map((name, i) => `
+        <button type="button" class="attack-pick-row" data-pick-cantrip="${i}">
+          <span class="attack-pick-icon">✨</span>
+          <span class="attack-pick-name">${escapeHtml(name)}</span>
+          <span class="attack-pick-sub">Truco</span>
+        </button>`).join('')
+      : '<p class="hint">No tenés trucos cargados.</p>';
+    const spellsHtml = availableSpells.length
+      ? availableSpells.map((sp) => `
+        <button type="button" class="attack-pick-row" data-pick-spell="${c.spellcasting.spells.indexOf(sp)}">
+          <span class="attack-pick-icon">🔮</span>
+          <span class="attack-pick-name">${escapeHtml(sp.name) || 'Conjuro'}</span>
+          <span class="attack-pick-sub">Nivel ${sp.level}</span>
+        </button>`).join('')
+      : `<p class="hint">${c.spellcasting.enabled ? 'No tenés conjuros con espacios disponibles ahora.' : 'Este personaje no tiene lanzamiento de conjuros activado.'}</p>`;
+    return `
+      <div class="attack-pick-section"><h4>Armas</h4>${weaponsHtml}</div>
+      <div class="attack-pick-section"><h4>Trucos</h4>${cantripsHtml}</div>
+      <div class="attack-pick-section"><h4>Conjuros disponibles</h4>${spellsHtml}</div>
+    `;
+  }
+
+  const { backdrop } = showModal('¿Con qué atacás?', listHtml());
+  const setBody = (html) => { backdrop.querySelector('.modal-body').innerHTML = html; };
+
+  function bindBack() {
+    backdrop.querySelector('[data-back]').addEventListener('click', () => {
+      setBody(listHtml());
+      bindListHandlers();
+    });
+  }
+
+  function showWeaponDetail(a) {
+    setBody(`
+      <button type="button" class="ghost" data-back="1">‹ Volver</button>
+      <h4 style="margin-top:0.6rem;">${escapeHtml(a.name) || 'Arma sin nombre'}</h4>
+      <p><b>Bono de ataque:</b> ${escapeHtml(a.bonus) || '—'}</p>
+      <p><b>Daño / Tipo:</b> ${escapeHtml(a.damage) || '—'}</p>
+      ${a.notes ? `<p>${escapeHtml(a.notes)}</p>` : ''}
+      <p class="hint">Tirá 1d20${a.bonus ? ` (${a.bonus})` : ''} para ver si impactás.</p>
+    `);
+    bindBack();
+  }
+
+  function showCantripDetail(name) {
+    const spell = findSpellByName(name);
+    setBody(`
+      <button type="button" class="ghost" data-back="1">‹ Volver</button>
+      ${spell ? spellDetailHtml(spell) : `<h4 style="margin-top:0.6rem;">${escapeHtml(name)}</h4><p class="hint">Truco personalizado, sin datos en el compendio.</p>`}
+    `);
+    bindBack();
+    if (spell) {
+      bindEffectApplyButton(backdrop, spell, () => {
+        backdrop.remove();
+        renderTabMain();
+        showToast('Efecto añadido.');
+      });
+    }
+  }
+
+  function showSpellCastDetail(index) {
+    const sp = c.spellcasting.spells[index];
+    const spell = findSpellByName(sp.name);
+    const levels = getAvailableSlotLevels(c, Number(sp.level) || 1);
+    setBody(`
+      <button type="button" class="ghost" data-back="1">‹ Volver</button>
+      ${spell ? spellDetailHtml(spell) : `<h4 style="margin-top:0.6rem;">${escapeHtml(sp.name) || 'Conjuro'}</h4>${sp.notes ? `<p>${escapeHtml(sp.notes)}</p>` : ''}<p class="hint">No está en el compendio.</p>`}
+      <label>Gastar espacio de nivel</label>
+      <select id="cast-slot-level">
+        ${levels.map((lvl) => `<option value="${lvl}">${lvl}${lvl > sp.level ? ' (potenciado)' : ''}</option>`).join('')}
+      </select>
+      <button type="button" id="cast-spell-btn" class="primary" style="width:100%;margin-top:0.6rem;">🔥 Lanzar</button>
+    `);
+    bindBack();
+    backdrop.querySelector('#cast-spell-btn').addEventListener('click', () => {
+      const lvl = Number(backdrop.querySelector('#cast-slot-level').value);
+      current.spellcasting.slots[lvl].used = (Number(current.spellcasting.slots[lvl].used) || 0) + 1;
+      scheduleSave();
+      backdrop.remove();
+      renderTabMain();
+      showToast(`Gastaste un espacio de nivel ${lvl} para lanzar ${sp.name || 'el conjuro'}.`);
+    });
+    if (spell) {
+      bindEffectApplyButton(backdrop, spell, () => {
+        backdrop.remove();
+        renderTabMain();
+        showToast('Efecto añadido.');
+      });
+    }
+  }
+
+  function bindListHandlers() {
+    backdrop.querySelectorAll('[data-pick-weapon]').forEach((btn) => {
+      btn.addEventListener('click', () => showWeaponDetail(weapons[Number(btn.dataset.pickWeapon)]));
+    });
+    backdrop.querySelectorAll('[data-pick-cantrip]').forEach((btn) => {
+      btn.addEventListener('click', () => showCantripDetail(cantrips[Number(btn.dataset.pickCantrip)]));
+    });
+    backdrop.querySelectorAll('[data-pick-spell]').forEach((btn) => {
+      btn.addEventListener('click', () => showSpellCastDetail(Number(btn.dataset.pickSpell)));
+    });
+  }
+  bindListHandlers();
 }
 
 function bindSheetEvents() {
@@ -1310,6 +1453,9 @@ function bindSheetEvents() {
       renderTabMain();
     });
   });
+
+  const attackPickerBtn = document.getElementById('open-attack-picker');
+  if (attackPickerBtn) attackPickerBtn.addEventListener('click', () => openAttackPicker());
 
   // Combate rápido: daño y curación
   const dmgAmountInput = document.getElementById('dmg-amount');
