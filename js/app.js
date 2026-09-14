@@ -19,12 +19,12 @@ let saveTimer = null;
 let activeTab = 'personaje';
 
 const TABS = [
-  { id: 'personaje', label: 'Personaje', icon: '🧙' },
-  { id: 'combate', label: 'Combate', icon: '❤️' },
-  { id: 'conjuros', label: 'Conjuros', icon: '✨' },
-  { id: 'rasgos', label: 'Rasgos', icon: '📜' },
-  { id: 'equipo', label: 'Equipo', icon: '🎒' },
-  { id: 'notas', label: 'Notas', icon: '📝' },
+  { id: 'personaje', label: 'Personaje' },
+  { id: 'combate', label: 'Combate' },
+  { id: 'conjuros', label: 'Conjuros' },
+  { id: 'rasgos', label: 'Rasgos' },
+  { id: 'equipo', label: 'Equipo' },
+  { id: 'notas', label: 'Notas' },
 ];
 
 const CARD_ICONS = {
@@ -799,7 +799,7 @@ function renderSheetView() {
       </div>
     </header>
     <nav class="tabbar">
-      ${TABS.map((t) => `<button type="button" class="tab-btn ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}"><span>${t.icon}</span>${t.label}</button>`).join('')}
+      ${TABS.map((t) => `<button type="button" class="tab-btn ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
     </nav>
     <main id="sheet-main">
       ${tabContentHtml(activeTab, c)}

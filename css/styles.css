@@ -173,9 +173,6 @@ label {
 .tabbar::-webkit-scrollbar { display: none; }
 .tab-btn {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
