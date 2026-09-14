@@ -62,6 +62,18 @@ Después de instalarla, funciona sin conexión (el service worker cachea la app)
 La ficha está dividida en pestañas (Personaje, Combate, Conjuros, Rasgos, Equipo, Notas) para no
 tener que scrollear una pantalla gigante. Cada pestaña guarda sus tarjetas colapsables propias.
 
+### Vida como corazón, habilidades agrupadas, listas plegables
+
+- Los puntos de golpe se muestran como un corazón que se va llenando según tu PG actual/máximo
+  (y late cuando estás por debajo del 25%), con la insignia dorada de PG temporales arriba.
+- Las habilidades están agrupadas por característica (Fuerza, Destreza, Inteligencia, Sabiduría,
+  Carisma) y ordenadas alfabéticamente dentro de cada grupo.
+- Los conjuros y los objetos de equipo se ven como una lista compacta (nombre + nivel/cantidad);
+  tocá cualquiera para desplegar sus notas, si está preparado, etc. Los trucos se muestran como
+  chips chiquitos en una fila.
+- El Equipo ahora tiene una lista de **objetos** individuales (cantidad, nombre, notas) además de
+  las monedas; el cuadro de texto libre quedó como "Otras notas" para lo que no quieras itemizar.
+
 ### Razas y clases con beneficios automáticos
 
 Al escribir una Clase o Raza que coincida con las del compendio (basado en el contenido abierto/SRD

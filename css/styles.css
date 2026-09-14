@@ -347,6 +347,18 @@ main {
 .skill-row .ability-tag { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-left: 0.3rem; }
 .skill-row .bonus { width: 3em; text-align: right; font-weight: 700; color: var(--accent-strong); }
 
+.skill-group-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  padding: 0.7rem 0 0.3rem;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 0.1rem;
+}
+.skill-group-header:first-child { padding-top: 0; }
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -360,6 +372,38 @@ main {
   text-align: center;
 }
 .stat-box .computed { font-size: 1.4rem; font-weight: 700; color: var(--accent-strong); }
+
+.hp-block {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.8rem;
+  padding: 0.8rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+}
+.hp-heart-wrap { position: relative; flex-shrink: 0; width: 76px; text-align: center; }
+.hp-heart-svg { width: 68px; height: auto; overflow: visible; }
+.hp-heart-fill { fill: var(--danger-strong); transition: y 0.35s ease, height 0.35s ease; }
+.hp-heart-outline { fill: none; stroke: var(--card-border); stroke-width: 1.4; }
+.hp-heart-svg.critical .hp-heart-fill { animation: hp-heart-pulse 1s ease-in-out infinite; }
+@keyframes hp-heart-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.hp-heart-numbers { margin-top: 0.3rem; font-weight: 700; font-size: 0.95rem; }
+.hp-temp-badge {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.hp-inputs { flex: 1; min-width: 180px; display: grid; grid-template-columns: repeat(auto-fit, minmax(85px, 1fr)); gap: 0.6rem; }
 
 .death-saves { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.5rem; }
 .death-saves .group { display: flex; align-items: center; gap: 0.4rem; }
@@ -385,8 +429,84 @@ main {
   padding: 0.15rem 0.5rem;
   font-size: 0.8rem;
 }
+.row-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.5rem;
+}
 
 .add-row-btn { margin-top: 0.6rem; width: 100%; }
+
+/* --- Elementos colapsables: conjuros y objetos de equipo --- */
+.list-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.list-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  cursor: pointer;
+  user-select: none;
+}
+.list-item-badge {
+  flex-shrink: 0;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.3rem;
+}
+.list-item-name {
+  flex: 1;
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prepared-badge { color: var(--success); font-weight: 700; flex-shrink: 0; }
+.list-item-header .chevron { color: var(--text-dim); transition: transform 0.15s; flex-shrink: 0; }
+.list-item.expanded .list-item-header .chevron { transform: rotate(180deg); }
+.list-item-body { display: none; padding: 0 0.7rem 0.7rem; }
+.list-item.expanded .list-item-body { display: block; }
+
+/* --- Trucos como chips compactos --- */
+.chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.spell-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.3rem 0.2rem 0.8rem;
+}
+.chip-input {
+  border: none;
+  background: transparent;
+  width: 8.5em;
+  padding: 0.25rem 0;
+  font-size: 0.88rem;
+}
+.chip-input:focus { outline: none; }
+.chip-icon-btn {
+  border: none;
+  background: transparent;
+  padding: 0.25rem 0.35rem;
+  font-size: 0.85rem;
+  border-radius: 50%;
+}
+.chip-icon-btn:hover { background: var(--card); }
+.chip-icon-btn.danger { color: var(--danger-strong); }
 
 .effect-row { border-left: 4px solid var(--card-border); }
 .effect-row.effect-buff { border-left-color: var(--success); }

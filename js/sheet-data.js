@@ -9,8 +9,8 @@ export const ABILITIES = [
   { key: 'cha', label: 'Carisma' },
 ];
 
-// Ordenadas por característica (Fuerza, Destreza, Constitución, Inteligencia, Sabiduría,
-// Carisma) para que se vean agrupadas en la ficha, en vez de alfabéticas.
+// Agrupadas por característica (Fuerza, Destreza, Constitución, Inteligencia, Sabiduría,
+// Carisma) y alfabéticas dentro de cada grupo, para que se vean ordenadas en la ficha.
 export const SKILLS = [
   { key: 'athletics', label: 'Atletismo', ability: 'str' },
   { key: 'acrobatics', label: 'Acrobacias', ability: 'dex' },
@@ -21,14 +21,14 @@ export const SKILLS = [
   { key: 'investigation', label: 'Investigación', ability: 'int' },
   { key: 'nature', label: 'Naturaleza', ability: 'int' },
   { key: 'religion', label: 'Religión', ability: 'int' },
-  { key: 'animalHandling', label: 'Trato con animales', ability: 'wis' },
-  { key: 'insight', label: 'Perspicacia', ability: 'wis' },
   { key: 'medicine', label: 'Medicina', ability: 'wis' },
   { key: 'perception', label: 'Percepción', ability: 'wis' },
+  { key: 'insight', label: 'Perspicacia', ability: 'wis' },
   { key: 'survival', label: 'Supervivencia', ability: 'wis' },
+  { key: 'animalHandling', label: 'Trato con animales', ability: 'wis' },
   { key: 'deception', label: 'Engaño', ability: 'cha' },
-  { key: 'intimidation', label: 'Intimidación', ability: 'cha' },
   { key: 'performance', label: 'Interpretación', ability: 'cha' },
+  { key: 'intimidation', label: 'Intimidación', ability: 'cha' },
   { key: 'persuasion', label: 'Persuasión', ability: 'cha' },
 ];
 
@@ -133,6 +133,7 @@ export function createDefaultCharacter() {
     features: [], // { name, desc }
     backgroundFeature: '',
     proficienciesLanguages: '',
+    items: [], // { name, qty, notes }
     equipment: '',
     currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
     notes: '',
@@ -196,6 +197,7 @@ export function migrateCharacter(char) {
   };
   merged.attacks = char.attacks || [];
   merged.features = char.features || [];
+  merged.items = char.items || [];
   merged.effects = (char.effects || []).map((e) => ({ ...createEffect(), ...e, modifiers: e.modifiers || [] }));
   merged.raceKey = char.raceKey || null;
   merged.classKey = char.classKey || null;

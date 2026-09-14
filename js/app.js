@@ -12,6 +12,8 @@ import { RACES, CLASSES, SUBCLASSES, SPELLS } from './compendium.js';
 
 const app = document.getElementById('app');
 const collapsedCards = new Set();
+const expandedSpells = new Set();
+const expandedItems = new Set();
 let current = null; // personaje actualmente abierto en memoria
 let saveTimer = null;
 let activeTab = 'personaje';
@@ -428,17 +430,23 @@ function renderAbilitiesCard(c) {
 }
 
 function renderSkillsCard(c) {
+  let lastAbility = null;
   const rows = SKILLS.map((s) => {
     const bonus = getSkillBonus(c, s);
     const prof = c.skillProficiencies[s.key];
+    const groupHeaderHtml = s.ability !== lastAbility
+      ? `<div class="skill-group-header">${ABILITIES.find((a) => a.key === s.ability).label}</div>`
+      : '';
+    lastAbility = s.ability;
     return `
+      ${groupHeaderHtml}
       <div class="skill-row">
         <select class="prof-select" data-path="skillProficiencies.${s.key}" data-type="text">
           <option value="none" ${prof === 'none' ? 'selected' : ''}>—</option>
           <option value="prof" ${prof === 'prof' ? 'selected' : ''}>Competencia</option>
           <option value="expertise" ${prof === 'expertise' ? 'selected' : ''}>Pericia</option>
         </select>
-        <span class="name">${s.label} <span class="ability-tag">${s.ability}</span></span>
+        <span class="name">${s.label}</span>
         <span class="bonus" data-derived="skill.${s.key}">${formatModifier(bonus)}</span>
       </div>`;
   }).join('');
@@ -446,6 +454,33 @@ function renderSkillsCard(c) {
     ${rows}
     <p class="hint" style="margin-top:0.8rem;">Percepción pasiva: <b data-derived="passivePerception">${getPassivePerception(c)}</b></p>
   `);
+}
+
+const HP_HEART_PATH = 'M23.6 0c-3.4 0-6.3 2-7.6 4.9C14.7 2 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.6 6.2-9.6 16-12.4 16-21.6C32 3.8 28.2 0 23.6 0z';
+
+function hpPct(c) {
+  const max = Number(c.hpMax) || 0;
+  const cur = Number(c.hpCurrent) || 0;
+  return max > 0 ? Math.max(0, Math.min(1, cur / max)) : 0;
+}
+
+function renderHpHeart(c) {
+  const pct = hpPct(c);
+  const fillHeight = 29 * pct;
+  const fillY = 29 - fillHeight;
+  const temp = Number(c.hpTemp) || 0;
+  return `
+    <div class="hp-heart-wrap">
+      <div class="hp-temp-badge" data-derived="hpTempBadge" ${temp > 0 ? '' : 'hidden'}>+${temp}</div>
+      <svg viewBox="0 0 32 29" class="hp-heart-svg${pct > 0 && pct <= 0.25 ? ' critical' : ''}" data-derived="hpHeartSvg">
+        <defs><clipPath id="hpHeartClip"><path d="${HP_HEART_PATH}"/></clipPath></defs>
+        <g clip-path="url(#hpHeartClip)">
+          <rect class="hp-heart-fill" data-derived="hpHeartFill" x="0" y="${fillY.toFixed(2)}" width="32" height="${fillHeight.toFixed(2)}"></rect>
+        </g>
+        <path d="${HP_HEART_PATH}" class="hp-heart-outline"></path>
+      </svg>
+      <div class="hp-heart-numbers" data-derived="hpHeartNumbers">${Number(c.hpCurrent) || 0} / ${Number(c.hpMax) || 0}</div>
+    </div>`;
 }
 
 function renderCombatCard(c) {
@@ -464,10 +499,13 @@ function renderCombatCard(c) {
         <div class="computed" data-derived="speed">${getSpeed(c)}</div>
       </div>
     </div>
-    <div class="field-row" style="margin-top:0.8rem;">
-      <div class="field"><label>PG máximos</label><input type="number" data-path="hpMax" data-type="number" value="${c.hpMax}"></div>
-      <div class="field"><label>PG actuales</label><input type="number" data-path="hpCurrent" data-type="number" value="${c.hpCurrent}"></div>
-      <div class="field"><label>PG temporales</label><input type="number" data-path="hpTemp" data-type="number" value="${c.hpTemp}"></div>
+    <div class="hp-block">
+      ${renderHpHeart(c)}
+      <div class="hp-inputs">
+        <div class="field"><label>PG actuales</label><input type="number" data-path="hpCurrent" data-type="number" value="${c.hpCurrent}"></div>
+        <div class="field"><label>PG máximos</label><input type="number" data-path="hpMax" data-type="number" value="${c.hpMax}"></div>
+        <div class="field"><label>PG temporales</label><input type="number" data-path="hpTemp" data-type="number" value="${c.hpTemp}"></div>
+      </div>
     </div>
     <label>Combate rápido</label>
     <div class="dmg-heal-row">
@@ -570,34 +608,41 @@ function renderAttacksSpellsCard(c) {
 
   if (sc.enabled) {
     const cantripsHtml = sc.cantrips.map((name, i) => `
-      <div class="row-card">
-        <button class="remove-btn danger" data-action="remove-cantrip" data-index="${i}">✕</button>
-        <div class="row-grid-info">
-          <div class="field" style="margin-bottom:0;"><label>Truco</label><input type="text" list="spell-options" data-path="spellcasting.cantrips.${i}" data-type="text" value="${escapeHtml(name)}"></div>
-          <button type="button" class="icon-btn ghost" data-action="spell-info">ℹ️</button>
-        </div>
-      </div>`).join('');
+      <span class="spell-chip">
+        <input type="text" list="spell-options" class="chip-input" data-spell-name-input="1" data-path="spellcasting.cantrips.${i}" data-type="text" value="${escapeHtml(name)}" placeholder="Truco">
+        <button type="button" class="chip-icon-btn" data-action="spell-info" title="Ver info">ℹ️</button>
+        <button type="button" class="chip-icon-btn danger" data-action="remove-cantrip" data-index="${i}" title="Quitar">✕</button>
+      </span>`).join('');
 
-    const spellsHtml = sc.spells.map((sp, i) => `
-      <div class="row-card">
-        <button class="remove-btn danger" data-action="remove-spell" data-index="${i}">✕</button>
-        <div class="row-grid">
-          <div class="field"><label>Nivel</label>
-            <input type="number" min="1" max="9" data-path="spellcasting.spells.${i}.level" data-type="number" value="${sp.level}">
-          </div>
-          <div class="field" style="grid-column: span 2;"><label>Nombre</label>
-            <div class="row-grid-info">
-              <input type="text" list="spell-options" data-path="spellcasting.spells.${i}.name" data-type="text" value="${escapeHtml(sp.name)}">
-              <button type="button" class="icon-btn ghost" data-action="spell-info">ℹ️</button>
+    const spellsHtml = sc.spells.map((sp, i) => {
+      const expanded = expandedSpells.has(String(i));
+      return `
+      <div class="list-item${expanded ? ' expanded' : ''}">
+        <div class="list-item-header" data-toggle-spell="${i}">
+          <span class="list-item-badge">${sp.level}</span>
+          <span class="list-item-name">${escapeHtml(sp.name) || 'Nuevo conjuro'}</span>
+          ${sp.prepared ? '<span class="prepared-badge" title="Preparado">✓</span>' : ''}
+          <span class="chevron">▾</span>
+        </div>
+        <div class="list-item-body">
+          <div class="row-grid">
+            <div class="field"><label>Nivel</label><input type="number" min="1" max="9" data-path="spellcasting.spells.${i}.level" data-type="number" value="${sp.level}"></div>
+            <div class="field" style="grid-column: span 2;"><label>Nombre</label>
+              <div class="row-grid-info">
+                <input type="text" list="spell-options" data-spell-name-input="1" data-path="spellcasting.spells.${i}.name" data-type="text" value="${escapeHtml(sp.name)}">
+                <button type="button" class="icon-btn ghost" data-action="spell-info">ℹ️</button>
+              </div>
             </div>
           </div>
+          <div class="field" style="margin-top:0.5rem;margin-bottom:0;"><label>Notas</label><input type="text" data-path="spellcasting.spells.${i}.notes" data-type="text" value="${escapeHtml(sp.notes)}"></div>
+          <div class="checkbox-line" style="margin-top:0.5rem;">
+            <input type="checkbox" data-path="spellcasting.spells.${i}.prepared" data-type="checkbox" ${sp.prepared ? 'checked' : ''}>
+            <label>Preparado</label>
+          </div>
+          <button type="button" class="danger" data-action="remove-spell" data-index="${i}" style="width:100%;margin-top:0.6rem;">✕ Quitar conjuro</button>
         </div>
-        <div class="field" style="margin-top:0.5rem;margin-bottom:0;"><label>Notas</label><input type="text" data-path="spellcasting.spells.${i}.notes" data-type="text" value="${escapeHtml(sp.notes)}"></div>
-        <div class="checkbox-line" style="margin-top:0.5rem;">
-          <input type="checkbox" data-path="spellcasting.spells.${i}.prepared" data-type="checkbox" ${sp.prepared ? 'checked' : ''}>
-          <label>Preparado</label>
-        </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     const slotsRows = Array.from({ length: 9 }, (_, idx) => idx + 1).map((lvl) => {
       const slot = sc.slots[lvl] || { max: 0, used: 0 };
@@ -636,7 +681,7 @@ function renderAttacksSpellsCard(c) {
         <tbody>${slotsRows}</tbody>
       </table>
       <label style="margin-top:0.9rem;">Trucos</label>
-      <div class="list-rows">${cantripsHtml}</div>
+      <div class="chip-row">${cantripsHtml}</div>
       <div class="button-row">
         <button class="add-row-btn" data-action="add-cantrip">+ Añadir truco</button>
         <button class="add-row-btn" data-action="pick-cantrip">📖 Elegir del compendio</button>
@@ -685,10 +730,32 @@ function renderEquipmentCard(c) {
   const currencyInputs = CURRENCIES.map((cur) => `
     <div class="field"><label>${cur.label}</label><input type="number" min="0" data-path="currency.${cur.key}" data-type="number" value="${c.currency[cur.key]}"></div>
   `).join('');
+  const itemsHtml = (c.items || []).map((item, i) => {
+    const expanded = expandedItems.has(String(i));
+    return `
+    <div class="list-item${expanded ? ' expanded' : ''}">
+      <div class="list-item-header" data-toggle-item="${i}">
+        <span class="list-item-badge">${Number(item.qty) || 1}×</span>
+        <span class="list-item-name">${escapeHtml(item.name) || 'Nuevo objeto'}</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="list-item-body">
+        <div class="row-grid">
+          <div class="field"><label>Cantidad</label><input type="number" min="0" data-path="items.${i}.qty" data-type="number" value="${item.qty}"></div>
+          <div class="field" style="grid-column: span 2;"><label>Nombre</label><input type="text" data-path="items.${i}.name" data-type="text" value="${escapeHtml(item.name)}"></div>
+        </div>
+        <div class="field" style="margin-top:0.5rem;margin-bottom:0;"><label>Notas</label><input type="text" data-path="items.${i}.notes" data-type="text" value="${escapeHtml(item.notes)}" placeholder="Peso, descripción, mágico..."></div>
+        <button type="button" class="danger" data-action="remove-item" data-index="${i}" style="width:100%;margin-top:0.6rem;">✕ Quitar objeto</button>
+      </div>
+    </div>`;
+  }).join('');
   return cardWrap('equipment', 'Equipo', `
     <label>Monedas</label>
     <div class="currency-grid">${currencyInputs}</div>
-    <div class="field" style="margin-top:0.9rem;"><label>Objetos y equipo</label><textarea data-path="equipment" data-type="text" rows="5">${escapeHtml(c.equipment)}</textarea></div>
+    <label style="margin-top:0.9rem;">Objetos</label>
+    <div class="list-rows">${itemsHtml}</div>
+    <button class="add-row-btn" data-action="add-item">+ Añadir objeto</button>
+    <div class="field" style="margin-top:0.9rem;"><label>Otras notas</label><textarea data-path="equipment" data-type="text" rows="4" placeholder="Cualquier cosa que no anotaste como objeto individual...">${escapeHtml(c.equipment)}</textarea></div>
   `);
 }
 
@@ -800,6 +867,24 @@ function toggleSheetMenu() {
   setTimeout(() => document.addEventListener('click', closeOnOutside), 0);
 }
 
+function updateListItemSummary(input) {
+  const itemEl = input.closest('.list-item');
+  if (!itemEl) return;
+  const path = input.dataset.path;
+  if (path.endsWith('.name')) {
+    const nameEl = itemEl.querySelector('.list-item-name');
+    if (nameEl) nameEl.textContent = input.value || (path.startsWith('items.') ? 'Nuevo objeto' : 'Nuevo conjuro');
+  }
+  if (path.endsWith('.level')) {
+    const badgeEl = itemEl.querySelector('.list-item-badge');
+    if (badgeEl) badgeEl.textContent = input.value;
+  }
+  if (path.endsWith('.qty')) {
+    const badgeEl = itemEl.querySelector('.list-item-badge');
+    if (badgeEl) badgeEl.textContent = `${input.value || 1}×`;
+  }
+}
+
 function updateDerivedFields() {
   const c = current;
   ABILITIES.forEach((a) => {
@@ -825,6 +910,24 @@ function updateDerivedFields() {
   if (acEl) acEl.textContent = getArmorClass(c);
   const speedEl = document.querySelector('[data-derived="speed"]');
   if (speedEl) speedEl.textContent = getSpeed(c);
+
+  const heartFillEl = document.querySelector('[data-derived="hpHeartFill"]');
+  if (heartFillEl) {
+    const pct = hpPct(c);
+    const fillHeight = 29 * pct;
+    heartFillEl.setAttribute('y', (29 - fillHeight).toFixed(2));
+    heartFillEl.setAttribute('height', fillHeight.toFixed(2));
+    const svgEl = document.querySelector('[data-derived="hpHeartSvg"]');
+    if (svgEl) svgEl.classList.toggle('critical', pct > 0 && pct <= 0.25);
+    const numsEl = document.querySelector('[data-derived="hpHeartNumbers"]');
+    if (numsEl) numsEl.textContent = `${Number(c.hpCurrent) || 0} / ${Number(c.hpMax) || 0}`;
+    const tempBadge = document.querySelector('[data-derived="hpTempBadge"]');
+    if (tempBadge) {
+      const temp = Number(c.hpTemp) || 0;
+      tempBadge.hidden = temp <= 0;
+      tempBadge.textContent = `+${temp}`;
+    }
+  }
 
   const pbInput = document.querySelector('[data-path="proficiencyBonusOverride"]');
   if (pbInput && document.activeElement !== pbInput) {
@@ -1028,6 +1131,7 @@ function bindSheetEvents() {
       } else {
         setPath(current, path, input.value);
       }
+      updateListItemSummary(input);
       scheduleSave();
       updateDerivedFields();
     });
@@ -1120,7 +1224,7 @@ function bindSheetEvents() {
   // Info de conjuros y elegir del compendio
   main.querySelectorAll('[data-action="spell-info"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const input = btn.closest('.row-grid-info').querySelector('input');
+      const input = (btn.closest('.spell-chip') || btn.closest('.row-grid-info')).querySelector('[data-spell-name-input]');
       const spell = findSpellByName(input.value);
       if (!spell) { showToast('Ese conjuro no está en el compendio (es personalizado).'); return; }
       openSpellInfo(spell);
@@ -1141,11 +1245,30 @@ function bindSheetEvents() {
     pickSpellBtn.addEventListener('click', () => {
       openSpellPicker((spell) => {
         current.spellcasting.spells.push({ level: Math.max(1, spell.level), name: spell.name, prepared: false, notes: '' });
+        expandedSpells.add(String(current.spellcasting.spells.length - 1));
         scheduleSave();
         renderTabMain();
       });
     });
   }
+
+  // Desplegar/colapsar conjuros y objetos sin volver a renderizar todo
+  main.querySelectorAll('[data-toggle-spell]').forEach((header) => {
+    header.addEventListener('click', () => {
+      const key = header.dataset.toggleSpell;
+      const itemEl = header.closest('.list-item');
+      if (expandedSpells.has(key)) { expandedSpells.delete(key); itemEl.classList.remove('expanded'); }
+      else { expandedSpells.add(key); itemEl.classList.add('expanded'); }
+    });
+  });
+  main.querySelectorAll('[data-toggle-item]').forEach((header) => {
+    header.addEventListener('click', () => {
+      const key = header.dataset.toggleItem;
+      const itemEl = header.closest('.list-item');
+      if (expandedItems.has(key)) { expandedItems.delete(key); itemEl.classList.remove('expanded'); }
+      else { expandedItems.add(key); itemEl.classList.add('expanded'); }
+    });
+  });
 
   // Listas dinámicas: agregar / quitar filas
   main.querySelectorAll('[data-action]').forEach((btn) => {
@@ -1160,8 +1283,16 @@ function bindSheetEvents() {
       if (action === 'remove-feature') current.features.splice(idx, 1);
       if (action === 'add-cantrip') current.spellcasting.cantrips.push('');
       if (action === 'remove-cantrip') current.spellcasting.cantrips.splice(idx, 1);
-      if (action === 'add-spell') current.spellcasting.spells.push({ level: 1, name: '', prepared: false, notes: '' });
-      if (action === 'remove-spell') current.spellcasting.spells.splice(idx, 1);
+      if (action === 'add-spell') {
+        current.spellcasting.spells.push({ level: 1, name: '', prepared: false, notes: '' });
+        expandedSpells.add(String(current.spellcasting.spells.length - 1));
+      }
+      if (action === 'remove-spell') { current.spellcasting.spells.splice(idx, 1); expandedSpells.clear(); }
+      if (action === 'add-item') {
+        current.items.push({ name: '', qty: 1, notes: '' });
+        expandedItems.add(String(current.items.length - 1));
+      }
+      if (action === 'remove-item') { current.items.splice(idx, 1); expandedItems.clear(); }
       if (action === 'toggle-slot') {
         const lvl = Number(btn.dataset.level);
         const slot = current.spellcasting.slots[lvl];
