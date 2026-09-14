@@ -1,6 +1,6 @@
 // Service worker: cachea el shell de la app para que funcione sin conexión.
 // Subí la versión del cache cada vez que cambies estos archivos para forzar la actualización.
-const CACHE_VERSION = 'rolearte-v11';
+const CACHE_VERSION = 'rolearte-v12';
 const APP_SHELL = [
   './',
   'index.html',
@@ -8,6 +8,10 @@ const APP_SHELL = [
   'css/styles.css',
   'js/app.js',
   'js/db.js',
+  'js/local-db.js',
+  'js/cloud-db.js',
+  'js/auth.js',
+  'js/firebase-config.js',
   'js/sheet-data.js',
   'js/compendium.js',
   'icons/icon.svg',

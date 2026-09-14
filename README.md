@@ -3,7 +3,8 @@
 PWA (app web instalable) para llevar tus personajes de D&D 5e. Se adapta a cualquier clase y
 subclase (los campos de clase, subclase, ataques, conjuros y rasgos son libres, no están
 atados a una lista fija), permite gestionar varios personajes, subir una foto/arte de cada uno,
-y guarda todo localmente en el dispositivo (no depende de internet ni de un servidor).
+y guarda todo localmente en el dispositivo por defecto. Opcionalmente se puede crear una cuenta
+para sincronizar los personajes entre dispositivos (ver "Sincronización en la nube" más abajo).
 
 No incluye inspiración, puntos de experiencia, ni rasgos de personalidad/ideales/vínculos/defectos,
 tal como se pidió. Sí incluye trasfondo, con su beneficio y las competencias/idiomas que otorga.
@@ -119,8 +120,33 @@ cálculos de la ficha; al borrar el efecto (o cuando termina su duración en ron
 
 ## Respaldo de tus personajes
 
-Como los datos viven solo en el navegador donde los cargaste, usá **Exportar** cada tanto para
-guardar un `.json` de respaldo, y **Importar** para pasarlos a otro dispositivo o navegador.
+Como los datos viven solo en el navegador donde los cargaste (a menos que uses una cuenta, ver
+abajo), usá **Exportar** cada tanto para guardar un `.json` de respaldo, y **Importar** para
+pasarlos a otro dispositivo o navegador.
+
+## Sincronización en la nube (opcional)
+
+Desde el menú ⋮ de la lista de personajes, **"Iniciar sesión / Crear cuenta…"** te deja crear una
+cuenta (correo + contraseña) para que tus personajes se guarden en la nube y aparezcan solos en
+cualquier dispositivo donde inicies sesión con la misma cuenta. Sin cuenta, todo sigue funcionando
+igual que siempre en modo local (invitado). La primera vez que iniciás sesión, si tenías personajes
+guardados localmente en ese dispositivo, te ofrece copiarlos a la cuenta.
+
+Para que esto funcione en tu propia copia del proyecto hace falta un proyecto gratuito de Firebase
+(plan Spark, sin tarjeta):
+
+1. Entrá a [Firebase console](https://console.firebase.google.com/) y creá un proyecto.
+2. **Compilación → Authentication → Comenzar** → activá el proveedor **Correo electrónico/contraseña**.
+3. **Compilación → Firestore Database → Crear base de datos** (cualquier región).
+4. En Firestore, pestaña **Reglas**, pegá el contenido de [`firestore.rules`](firestore.rules) de
+   este proyecto y publicá (restringe cada cuenta a ver solo sus propios personajes).
+5. **Configuración del proyecto** (ícono de tuerca) → "Tus apps" → ícono `</>` (Web) → registrá una
+   app → copiá el objeto `firebaseConfig` que te muestra.
+6. Pegá esos valores en [`js/firebase-config.js`](js/firebase-config.js), reemplazando los
+   placeholders (`TU_API_KEY`, etc.).
+
+Mientras `js/firebase-config.js` tenga los valores de ejemplo, el botón de cuenta simplemente
+avisa que la nube no está configurada y la app sigue funcionando 100% local.
 
 ## Estructura del proyecto
 
@@ -130,7 +156,12 @@ css/styles.css          Estilos
 js/app.js               Lógica de la interfaz y navegación
 js/sheet-data.js        Modelo de datos de la ficha y cálculos (modificadores, bonos, efectos, etc.)
 js/compendium.js        Compendio editable de razas, clases y conjuros (basado en SRD)
-js/db.js                Acceso a IndexedDB (con respaldo en localStorage si no está disponible)
+js/db.js                Fachada de almacenamiento: elige entre local-db.js y cloud-db.js
+js/local-db.js          Acceso a IndexedDB (con respaldo en localStorage si no está disponible)
+js/cloud-db.js          Acceso a Firestore (personajes por usuario, cuando hay sesión iniciada)
+js/auth.js              Login/registro y conexión con Firebase (carga diferida)
+js/firebase-config.js   Config de tu proyecto de Firebase (ver "Sincronización en la nube")
+firestore.rules         Reglas de seguridad para pegar en Firebase → Firestore → Reglas
 manifest.webmanifest    Metadatos de la PWA
 sw.js                   Service worker (funcionamiento offline)
 icons/                  Íconos de la app

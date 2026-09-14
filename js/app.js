@@ -9,6 +9,11 @@ import {
   uid,
 } from './sheet-data.js';
 import { RACES, CLASSES, SUBCLASSES, SPELLS } from './compendium.js';
+import {
+  onAuthChange, getCurrentUser, signUp, signIn, signOutUser, isCloudAvailable,
+} from './auth.js';
+import * as localDb from './local-db.js';
+import * as cloudDb from './cloud-db.js';
 
 const app = document.getElementById('app');
 const collapsedCards = new Set();
@@ -17,6 +22,7 @@ const expandedItems = new Set();
 let current = null; // personaje actualmente abierto en memoria
 let saveTimer = null;
 let activeTab = 'personaje';
+let authUser = null;
 
 const TABS = [
   { id: 'personaje', label: 'Personaje' },
@@ -211,6 +217,7 @@ async function renderList() {
   app.innerHTML = `
     <header class="appbar">
       <span class="brand">🎲 RoleArte</span>
+      ${authUser ? `<span class="cloud-indicator" title="Sincronizado con ${escapeHtml(authUser.email)}">☁️</span>` : ''}
       <div class="menu-wrap" id="list-menu-wrap">
         <button class="icon-btn ghost" id="list-menu-btn" aria-label="Menú">⋮</button>
       </div>
@@ -310,9 +317,13 @@ function toggleListMenu(characters) {
   const wrap = document.getElementById('list-menu-wrap');
   const menu = document.createElement('div');
   menu.className = 'menu';
+  const accountHtml = authUser
+    ? `<button id="menu-signout">Cerrar sesión (${escapeHtml(authUser.email)})</button>`
+    : `<button id="menu-signin">Iniciar sesión / Crear cuenta…</button>`;
   menu.innerHTML = `
     <button id="menu-import">Importar personaje(s)…</button>
     <button id="menu-export-all">Exportar todo…</button>
+    ${accountHtml}
   `;
   wrap.appendChild(menu);
   document.getElementById('menu-import').addEventListener('click', () => {
@@ -324,6 +335,17 @@ function toggleListMenu(characters) {
     if (!characters.length) { showToast('No hay personajes para exportar.'); return; }
     downloadJson('rolearte-personajes.json', characters);
   });
+  const signInBtn = document.getElementById('menu-signin');
+  if (signInBtn) signInBtn.addEventListener('click', () => { menu.remove(); openAuthModal(); });
+  const signOutBtn = document.getElementById('menu-signout');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', async () => {
+      menu.remove();
+      await signOutUser();
+      showToast('Sesión cerrada. Volviste al almacenamiento local.');
+      renderList();
+    });
+  }
   const closeOnOutside = (e) => {
     if (!menu.contains(e.target) && e.target !== document.getElementById('list-menu-btn')) {
       menu.remove();
@@ -331,6 +353,85 @@ function toggleListMenu(characters) {
     }
   };
   setTimeout(() => document.addEventListener('click', closeOnOutside), 0);
+}
+
+// ---------- Cuenta y sincronización en la nube ----------
+function openAuthModal() {
+  if (!isCloudAvailable()) {
+    showToast('La sincronización en la nube todavía no está configurada en esta app.');
+    return;
+  }
+  let mode = 'signin';
+  const { backdrop, close } = showModal('Iniciar sesión', authFormHtml());
+  bindAuthForm();
+
+  function authFormHtml() {
+    return `
+      <div class="field"><label>Correo</label><input type="email" id="auth-email" autocomplete="email"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="auth-password" autocomplete="${mode === 'signin' ? 'current-password' : 'new-password'}"></div>
+      <p class="hint" id="auth-error" style="display:none;color:var(--danger-strong);"></p>
+      <button type="button" id="auth-submit" class="primary" style="width:100%;">${mode === 'signin' ? 'Iniciar sesión' : 'Crear cuenta'}</button>
+      <button type="button" id="auth-switch" class="ghost" style="width:100%;margin-top:0.4rem;">
+        ${mode === 'signin' ? '¿No tenés cuenta? Creá una' : '¿Ya tenés cuenta? Iniciá sesión'}
+      </button>
+    `;
+  }
+
+  function bindAuthForm() {
+    backdrop.querySelector('.modal-header-row h3').textContent = mode === 'signin' ? 'Iniciar sesión' : 'Crear cuenta';
+    backdrop.querySelector('#auth-switch').addEventListener('click', () => {
+      mode = mode === 'signin' ? 'signup' : 'signin';
+      backdrop.querySelector('.modal-body').innerHTML = authFormHtml();
+      bindAuthForm();
+    });
+    backdrop.querySelector('#auth-submit').addEventListener('click', async () => {
+      const email = backdrop.querySelector('#auth-email').value.trim();
+      const password = backdrop.querySelector('#auth-password').value;
+      const errorEl = backdrop.querySelector('#auth-error');
+      errorEl.style.display = 'none';
+      if (!email || !password) {
+        errorEl.textContent = 'Completá correo y contraseña.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      try {
+        const user = mode === 'signin' ? await signIn(email, password) : await signUp(email, password);
+        close();
+        showToast(mode === 'signin' ? 'Sesión iniciada.' : 'Cuenta creada.');
+        await maybeOfferMigration(user);
+        renderList();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = 'block';
+      }
+    });
+  }
+}
+
+async function maybeOfferMigration(user) {
+  const flagKey = `rolearte-migrated-${user.uid}`;
+  if (localStorage.getItem(flagKey)) return;
+  const localCharacters = await localDb.getAllCharacters();
+  if (localCharacters.length > 0) {
+    const ok = await showConfirm({
+      title: 'Subir personajes locales',
+      message: `Tenés ${localCharacters.length} personaje(s) guardados en este dispositivo. ¿Los copiamos a tu cuenta para que los veas en todos tus dispositivos?`,
+      confirmLabel: 'Copiar a la nube',
+    });
+    if (ok) {
+      for (const c of localCharacters) {
+        await cloudDb.saveCharacter(user.uid, c);
+      }
+      showToast(`Se copiaron ${localCharacters.length} personaje(s) a tu cuenta.`);
+    }
+  }
+  localStorage.setItem(flagKey, '1');
+}
+
+function handleAuthChange(user) {
+  authUser = user;
+  const hash = location.hash || '#/list';
+  if (hash === '#/list') renderList();
 }
 
 // ---------- Vista: ficha de personaje ----------
@@ -1508,6 +1609,7 @@ function bindSheetEvents() {
 
 // ---------- Arranque ----------
 renderRoute();
+onAuthChange(handleAuthChange);
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {

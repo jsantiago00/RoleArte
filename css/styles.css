@@ -191,7 +191,8 @@ label {
 }
 .tab-btn.active:hover { background: linear-gradient(135deg, var(--accent-strong), var(--accent)); }
 
-.menu-wrap { position: relative; }
+.menu-wrap { position: relative; margin-left: auto; }
+.cloud-indicator { font-size: 1.1rem; }
 .menu {
   position: absolute;
   right: 0;
